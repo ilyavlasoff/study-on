@@ -31,3 +31,13 @@ services:
       - COMPOSER_ALLOW_SUPERUSER=1
     links:
       - postgres
+  node:
+    image: node:alpine
+    stdin_open: true
+    environment:
+      - YARN_CACHE_FOLDER=/yarn
+    working_dir: /app
+    user: ${UID:-1000}:${GID:-1000}
+    volumes:
+      - ./:/app
+      - ./.yarn:/yarn
