@@ -9,7 +9,7 @@ use Doctrine\Persistence\ObjectManager;
 
 class AppFixtures extends Fixture
 {
-    public function load(ObjectManager $manager)
+    public function load(ObjectManager $manager): void
     {
         $courseNames = ['Математическое программирование', 'Теория принятия решений',
             'Теория автоматизированного управления', 'Базы данных', 'Тестирование ПО'];
@@ -22,7 +22,6 @@ class AppFixtures extends Fixture
             $course->setDescription('Этот курс содержит лекции и семинары по дисциплине ' . $courseName);
             $course->setCode(random_int(1, 100));
             $manager->persist($course);
-            $manager->flush();
 
             $lessonCount = random_int($lessonCountMin, $lessonCountMax);
             for ($i=0; $i!==$lessonCount; ++$i) {
@@ -32,8 +31,9 @@ class AppFixtures extends Fixture
                 $lesson->setIndexNumber($i);
                 $lesson->setCourse($course);
                 $manager->persist($lesson);
-                $manager->flush();
             }
         }
+
+        $manager->flush();
     }
 }

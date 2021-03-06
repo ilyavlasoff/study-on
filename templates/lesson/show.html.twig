@@ -5,9 +5,9 @@
 {% block body %}
     <h1>{{ lesson.name }}</h1>
 
-    <h5>Входит в курс: <a href="{{ path('course_show', { 'id': lesson.course.id }) }}">{{ lesson.course.name }}</a> </h5>
+    <h5>Входит в курс: <a class="text-dark" href="{{ path('course_show', { 'id': lesson.course.id }) }}">{{ lesson.course.name }}</a> </h5>
 
-    <a href="{{ path('lesson_edit', {'id': lesson.id}) }}">edit</a>
+    <a class="btn btn-dark mb-2" href="{{ path('lesson_edit', {'id': lesson.id}) }}">Редактировать</a>
 
     {{ include('lesson/_delete_form.html.twig') }}
 

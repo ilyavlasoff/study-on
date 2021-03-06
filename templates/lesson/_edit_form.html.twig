@@ -1,0 +1,27 @@
+{{ form_start(form) }}
+    {% set formErrors = form.vars.errors.form.getErrors(true) %}
+    {% if formErrors|length %}
+        <div class="alert alert-danger">
+            <label>Невозможно выполнить операцию из-за следующих ошибок:</label>
+            <ul>
+                {% for error in formErrors %}
+                    <li>{{ error.message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    <div class="form-group">
+        <label for="name-input" class="form-label">Наименование</label>
+        {{ form_widget(form.name, {'attr': {'id': 'name-input', 'class': 'form-control'}}) }}
+    </div>
+    <div class="form-group">
+        <label for="index-number-input" class="form-label">Номер урока</label>
+        {{ form_widget(form.indexNumber, {'attr': {'id': 'index-number-input', 'class': 'form-control'}}) }}
+    </div>
+    <div class="form-group">
+        <label for="content-input" class="form-label">Содержание урока</label>
+        {{ form_widget(form.content, {'attr': {'id': 'content-input', 'class': 'form-control', 'style': 'min-height: 300px;'}}) }}
+    </div>
+
+    <button class="btn btn-dark">{{ button_label|default('ОК') }}</button>
+{{ form_end(form) }}

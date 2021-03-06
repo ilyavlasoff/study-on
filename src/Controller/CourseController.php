@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Course;
+use App\Entity\Lesson;
 use App\Form\CourseType;
 use App\Repository\CourseRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -53,8 +54,14 @@ class CourseController extends AbstractController
      */
     public function show(Course $course): Response
     {
+        $lessons = $this->getDoctrine()->getRepository(Lesson::class)->findBy(
+            ['course' => $course->getId()],
+            ['indexNumber' => 'ASC']
+        );
+
         return $this->render('course/show.html.twig', [
             'course' => $course,
+            'lessons' => $lessons,
         ]);
     }
 

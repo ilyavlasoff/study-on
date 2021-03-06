@@ -3,9 +3,9 @@
 {% block title %}New Lesson{% endblock %}
 
 {% block body %}
-    <h1>Create new Lesson</h1>
+    <h1>Добавить урок</h1>
 
-    {{ include('lesson/_form.html.twig') }}
+    {{ include('lesson/_edit_form.html.twig', {'button_label': 'Сохранить'}) }}
 
-    <a href="{{ path('lesson_index') }}">back to list</a>
+    <a class="btn btn-danger mt-2" href="{{ path('course_index') }}">Отмена</a>
 {% endblock %}

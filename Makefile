@@ -29,5 +29,9 @@ install:
 
 controller:
 	@${CONSOLE} make:controller
-
-
+encore_dev:
+	@${COMPOSE} run node yarn encore dev
+encore_prod:
+	@${COMPOSE} run node yarn encore production
+phpunit:
+	@${COMPOSE} exec php bin/phpunit

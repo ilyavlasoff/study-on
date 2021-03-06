@@ -3,28 +3,29 @@
 {% block title %}Course index{% endblock %}
 
 {% block body %}
-    <h1>Course index</h1>
+    <h1>Курсы</h1>
+        <a class="btn btn-dark mb-4 mt-2" href="{{ path('course_new') }}">Добавить</a>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Description</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for course in courses %}
-            <tr>
-                <td><a href="{{ path('course_show', {'id': course.id}) }}">{{ course.name }}</a></td>
-                <td>{{ course.description }}</td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="5">no records found</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+        <div class="row">
+            <div class="col">
+                {% if courses|length %}
+                <div class="d-flex flex-row flex-wrap">
+                    {% for course in courses %}
+                        <div class="card mr-2 mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ course.name }}</h5>
+                                <p class="card-text">{{ course.description }}</p>
+                            </div>
+                            <div class="card-footer">
+                                <a href="{{ path('course_show', {'id': course.id}) }}" class="card-link text-dark">Просмотр</a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                    <h4 class="text-center">Курсы еще не добавлены</h4>
+                {% endif %}
+            </div>
+        </div>
 
-    <a href="{{ path('course_new') }}">Create new</a>
 {% endblock %}
