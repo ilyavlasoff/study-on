@@ -48,6 +48,7 @@
     },
     "require-dev": {
         "ext-json": "*",
+        "dama/doctrine-test-bundle": "^6.5",
         "friendsofphp/php-cs-fixer": "^2.18",
         "squizlabs/php_codesniffer": "^3.5",
         "symfony/browser-kit": "5.2.*",

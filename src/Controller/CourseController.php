@@ -22,7 +22,7 @@ class CourseController extends AbstractController
     public function index(CourseRepository $courseRepository): Response
     {
         return $this->render('course/index.html.twig', [
-            'courses' => $courseRepository->findAll(),
+            'courses' => $courseRepository->findBy([], ['id' => 'ASC']),
         ]);
     }
 
@@ -75,7 +75,6 @@ class CourseController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $this->getDoctrine()->getManager()->flush();
-
             return $this->redirectToRoute('course_index');
         }
 

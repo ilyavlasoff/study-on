@@ -41,7 +41,7 @@ class LessonController extends AbstractController
             $entityManager->flush();
 
             return $this->redirectToRoute('course_show', [
-                'id' => $lesson->getCourse()->getId()
+                'id' => $lesson->getCourse()->getId(),
             ]);
         }
 
@@ -72,7 +72,9 @@ class LessonController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->getDoctrine()->getManager()->flush();
 
-            return $this->redirectToRoute('lesson_index');
+            return $this->redirectToRoute('lesson_show', [
+                'id' => $lesson->getId(),
+            ]);
         }
 
         return $this->render('lesson/edit.html.twig', [
@@ -94,7 +96,7 @@ class LessonController extends AbstractController
         }
 
         return $this->redirectToRoute('course_show', [
-            'id' => $courseId
+            'id' => $courseId,
         ]);
     }
 }

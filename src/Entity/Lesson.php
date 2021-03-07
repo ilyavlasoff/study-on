@@ -20,7 +20,7 @@ class Lesson
 
     /**
      * @ORM\ManyToOne(targetEntity="Course", inversedBy="lessons")
-     * @ORM\JoinColumn(name="course", referencedColumnName="id", nullable=true)
+     * @ORM\JoinColumn(name="course", referencedColumnName="id", nullable=false)
      */
     private $course;
 

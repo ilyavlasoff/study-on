@@ -10,85 +10,192 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class LessonControllerTest extends AbstractTest
 {
-    private $urlBase = '/lessons/';
-
-    private function getUrl(array $urlPart)
-    {
-        return $this->urlBase . implode('/', $urlPart);
-    }
-
     protected function getFixtures(): array
     {
         return [AppFixtures::class];
     }
 
-    public function testLessonsHttpStatus(): void
+    public function testLessonDisplayInfo(): void
     {
-        self::getClient()->request('GET', $this->getUrl([]));
-        self::assertEquals(200, self::getClient()->getResponse()->getStatusCode());
-    }
+        $client = self::getClient();
+        $crawler = $client->request('GET', '/courses/');
+        self::assertEquals(
+            200,
+            $client->getResponse()->getStatusCode(),
+            'Courses list page - wrong http response code'
+        );
 
-    public function testRedirectMainToCourses(): void
-    {
-        self::getClient()->request('GET', '/');
-        self::assertInstanceOf(RedirectResponse::class, self::getClient()->getResponse());
-        self::assertEquals('/courses/', self::getClient()->getResponse()->headers->get('location'));
+        $coursesCount = $crawler->filter('a.card-link')->count();
+        for ($i = 0; $i !== $coursesCount; ++$i) {
+            $courseLink = $crawler->filter('a.card-link')->eq($i)->link();
+            $crawler = $client->click($courseLink);
+            self::assertEquals(
+                200,
+                $client->getResponse()->getStatusCode(),
+                'Course main page - wrong http response code'
+            );
+
+            /** @var EntityManagerInterface $em */
+            $em = self::getEntityManager();
+            $courseTitle = $crawler->filter('h1')->eq(0)->text();
+            $startNamePos = strpos($courseTitle, '"') + 1;
+            $endNamePos = strrpos($courseTitle, '"');
+            $courseTitle = substr($courseTitle, $startNamePos, $endNamePos - $startNamePos);
+            /** @var Course $course */
+            $course = $em->getRepository(Course::class)->findOneBy(['name' => $courseTitle]);
+            self::assertNotNull($course, 'Course was not found by page title');
+
+            $lessonsCount = $crawler->filter('table tbody a')->count();
+            /** @var Lesson[] $lessons */
+            $lessons = $em->getRepository(Lesson::class)->findBy(
+                ['course' => $course->getId()],
+                ['indexNumber' => 'ASC']
+            );
+            self::assertCount($lessonsCount, $lessons, 'Some lessons was not displayed');
+
+            for ($j = 0; $j !== $lessonsCount; ++$j) {
+                $lessonLink = $crawler->filter('table tbody a')->eq($j)->link();
+                $crawler = $client->click($lessonLink);
+                self::assertEquals(
+                    200,
+                    $client->getResponse()->getStatusCode(),
+                    'Lesson page - wrong http response code'
+                );
+
+                $lessonContent = $crawler->filter('p')->eq(0)->text();
+                self::assertEquals(
+                    $lessonContent,
+                    $lessons[$j]->getContent(),
+                    'Lesson content displayed incorrectly'
+                );
+
+                $lessonTitle = $crawler->filter('h1')->eq(0)->text();
+                self::assertEquals($lessonTitle, $lessons[$j]->getName(), 'Lesson title displayed incorrectly');
+
+                $crawler = $client->request('GET', '/courses/' . $course->getId());
+                self::assertEquals(200, $client->getResponse()->getStatusCode());
+            }
+
+            $crawler = $client->request('GET', '/courses/');
+            self::assertEquals(200, $client->getResponse()->getStatusCode());
+        }
     }
 
     public function testCreateNewLesson(): void
     {
-        $crawler = self::getClient()->request('GET', '/courses/');
-        self::assertEquals(200, self::getClient()->getResponse()->getStatusCode());
-        // Count of courses available on /courses page
-        $coursesCount = $crawler->filterXPath('//body[1]/table[1]/tbody[1]/tr')->count();
+        $client = self::getClient();
+        $crawler = $client->request('GET', '/courses/');
+        self::assertEquals(
+            200,
+            $client->getResponse()->getStatusCode(),
+            'Courses list page - wrong http response code'
+        );
+
+        $coursesCount = $crawler->filter('div.card')->count();
 
         /** @var EntityManagerInterface $em */
         $em = self::getEntityManager();
-        self::assertCount($coursesCount, $em->getRepository(Course::class)->findAll());
+        self::assertCount(
+            $coursesCount,
+            $em->getRepository(Course::class)->findAll(),
+            'Wrong courses count displayed'
+        );
 
-        // Follow all courses links to create lesson in each of them
         for ($i = 0; $i !== $coursesCount; ++$i) {
-            $link = $crawler->filterXPath('//body[1]/table[1]/tbody[1]/tr[' . ($i + 1) .']/td[1]/a')->link();
-            $crawler = self::getClient()->click($link);
-            // To lessons list page
-            self::assertEquals(200, self::getClient()->getResponse()->getStatusCode());
+            $link = $crawler->filter('a.card-link')->eq($i)->link();
+            $crawler = $client->click($link);
+            self::assertEquals(
+                200,
+                $client->getResponse()->getStatusCode(),
+                'Course full page - wrong http response code'
+            );
 
-            //Save previous count of lessons in course
-            $lessonsCount = $crawler->filterXPath('//body[1]/ol[1]/li')->count();
+            $previousLessonsCount = $crawler->filter('table tbody tr')->count();
 
-            $link = $crawler->filterXPath('//body[1]/a[3]')->link();
-            $crawler = self::getClient()->click($link);
-            // To create new lesson page
-            self::assertEquals(200, self::getClient()->getResponse()->getStatusCode());
+            $link = $crawler->filter('a#add-lesson')->link();
+            $crawler = $client->click($link);
+            self::assertEquals(
+                200,
+                $client->getResponse()->getStatusCode(),
+                'Add lesson page - wrong http response code'
+            );
 
-            $form = $crawler->filterXPath('//body[1]/form[1]')->form();
+            $form = $crawler->filter('form')->eq(0)->form();
             $form['lesson[name]'] = 'TestLesson';
             $form['lesson[content]'] = 'This is content of lesson';
             $form['lesson[indexNumber]'] = '101';
-            $crawler = self::getClient()->submit($form);
+            $client->submit($form);
 
-            // Expected redirect to course page
-            self::assertInstanceOf(RedirectResponse::class, self::getClient()->getResponse());
-            $crawler = self::getClient()->followRedirect();
-            self::assertEquals($lessonsCount + 1, $crawler->filterXPath('//body[1]/ol[1]/li')->count());
+            self::assertInstanceOf(
+                RedirectResponse::class,
+                $client->getResponse(),
+                'Redirect error'
+            );
+            $crawler = $client->followRedirect();
+            self::assertEquals(
+                $previousLessonsCount + 1,
+                $crawler->filter('table tbody tr')->count(),
+                'Added lesson not displayed'
+            );
 
-            $crawler = self::getClient()->request('GET', '/courses/');
+            $crawler = $client->request('GET', '/courses/');
         }
     }
 
-    public function testGetShowLessonPage(): void
+    public function testEditLesson(): void
     {
-        foreach ($this->lessons as $lesson) {
-            self::getClient()->request('GET', $this->getUrl([(string)$lesson->getId()]));
-            self::assertEquals(200, self::getClient()->getResponse()->getStatusCode());
-        }
+        $client = self::getClient();
+        $crawler = $client->request('GET', '/courses/');
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $cardLink = $crawler->filter('a.card-link')->eq(0)->link();
+        $crawler = $client->click($cardLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $lessonLink = $crawler->filter('table tbody tr a')->eq(0)->link();
+        $crawler = $client->click($lessonLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $oldLessonName = $crawler->filter('h1')->eq(0)->text();
+        $oldLessonContent = $crawler->filter('p')->eq(0)->text();
+
+        $editLink = $crawler->filter('a.btn')->link();
+        $crawler = $client->click($editLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $editLessonForm = $crawler->filter('form')->eq(0)->form();
+        self::assertEquals($oldLessonName, $editLessonForm['lesson[name]']->getValue());
+        self::assertEquals($oldLessonContent, $editLessonForm['lesson[content]']->getValue());
+
+        $newLessonName = 'test name';
+        $newLessonContent = 'Test lesson content';
+        $editLessonForm['lesson[name]']->setValue($newLessonName);
+        $editLessonForm['lesson[indexNumber]']->setValue((string)random_int(1, 1000));
+        $editLessonForm['lesson[content]']->setValue($newLessonContent);
+        $client->submit($editLessonForm);
+
+        self::assertInstanceOf(RedirectResponse::class, $client->getResponse());
+        $crawler = $client->followRedirect();
+
+        self::assertEquals($newLessonName, $crawler->filter('h1')->eq(0)->text());
+        self::assertEquals($newLessonContent, $crawler->filter('p')->eq(0)->text());
     }
 
-    public function testGetEditLessonPage(): void
+    public function testRemoveLesson(): void
     {
-        foreach ($this->lessons as $lesson) {
-            self::getClient()->request('GET', $this->getUrl([(string)$lesson->getId(), 'edit']));
-            self::assertEquals(200, self::getClient()->getResponse()->getStatusCode());
-        }
+        $client = self::getClient();
+        $crawler = $client->request('GET', '/courses/');
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $cardLink = $crawler->filter('a.card-link')->eq(0)->link();
+        $crawler = $client->click($cardLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $lessonLink = $crawler->filter('table tbody tr a')->eq(0)->link();
+        $client->click($lessonLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        //$deleteLink = $crawler->filter('form .btn')->eq(0)->link();
+        //$client->click($deleteLink);
     }
 }
