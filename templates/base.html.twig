@@ -17,12 +17,21 @@
                 <a class="navbar-brand" href="{{ path('app_index') }}">StudyOn</a>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ml-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Регистрация</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Вход</a>
-                        </li>
+                        {% if app.user %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('user_profile') }}">Профиль</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('app_logout') }}">Выход</a>
+                            </li>
+                        {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('app_register') }}">Регистрация</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('app_login') }}">Вход</a>
+                            </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>

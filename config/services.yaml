@@ -29,3 +29,7 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    App\Service\BillingClient:
+        autowire: true
+        arguments: ["%env(BILLING_URL_BASE)%", "%env(BILLING_API_VERSION)%", "@http_client", "@jms_serializer"]

@@ -7,9 +7,10 @@
 
     <h5>Входит в курс: <a class="text-dark" href="{{ path('course_show', { 'id': lesson.course.id }) }}">{{ lesson.course.name }}</a> </h5>
 
-    <a class="btn btn-dark mb-2" href="{{ path('lesson_edit', {'id': lesson.id}) }}">Редактировать</a>
-
-    {{ include('lesson/_delete_form.html.twig') }}
+    {% if is_granted('ROLE_SUPER_ADMIN') %}
+        <a class="btn btn-dark mb-2" href="{{ path('lesson_edit', {'id': lesson.id}) }}">Редактировать</a>
+        {{ include('lesson/_delete_form.html.twig') }}
+    {% endif %}
 
     <p>{{ lesson.content }}</p>
 

@@ -4,14 +4,16 @@
 
 {% block body %}
     <h1>Курсы</h1>
-        <a class="btn btn-dark mb-4 mt-2" href="{{ path('course_new') }}">Добавить</a>
+        {% if is_granted('ROLE_SUPER_ADMIN') %}
+            <a class="btn btn-dark mb-4 mt-2" href="{{ path('course_new') }}">Добавить</a>
+        {% endif %}
 
         <div class="row">
             <div class="col">
                 {% if courses|length %}
                 <div class="d-flex flex-row flex-wrap">
                     {% for course in courses %}
-                        <div class="card mr-2 mb-2">
+                        <div class="card mr-2 mb-2" data-code="{{ course.code }}">
                             <div class="card-body">
                                 <h5 class="card-title">{{ course.name }}</h5>
                                 <p class="card-text">{{ course.description }}</p>

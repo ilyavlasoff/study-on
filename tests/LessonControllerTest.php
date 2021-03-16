@@ -19,11 +19,7 @@ class LessonControllerTest extends AbstractTest
     {
         $client = self::getClient();
         $crawler = $client->request('GET', '/courses/');
-        self::assertEquals(
-            200,
-            $client->getResponse()->getStatusCode(),
-            'Courses list page - wrong http response code'
-        );
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
 
         $coursesCount = $crawler->filter('a.card-link')->count();
         for ($i = 0; $i !== $coursesCount; ++$i) {

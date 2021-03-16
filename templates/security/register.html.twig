@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+
+{% block title %}Регистрация{% endblock %}
+
+{% block body %}
+    <div class="row justify-content-center">
+        <div class="bordered-form col-8 p-3">
+            <h1 class="h3 mb-3 font-weight-normal">Регистрация</h1>
+            {% if errors is defined and errors|length %}
+                <div class="alert alert-danger">
+                    <label>Невозможно выполнить операцию из-за следующих ошибок:</label>
+                    <ul>
+                        {% for error in errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            {{ form_start(register_form) }}
+
+                <div class="mb-3">
+                    <label for="email-input" class="form-label">E-mail</label>
+                    {{ form_widget(register_form.email, {'attr': {'type': 'email','class': 'form-control','placeholder':'youremail@you.com', 'id': 'email-input'}}) }}
+                    {{ form_errors(register_form.email) }}
+                </div>
+                <div class="mb-3">
+                    <label for="password-input" class="form-label">Пароль</label>
+                    {{ form_widget(register_form.password.first, {'attr': {'type': 'password','class': 'form-control', 'id': 'password-input'}}) }}
+                    {{ form_errors(register_form.password.first) }}
+                </div>
+                <div class="mb-3">
+                    <label for="double-password-input" class="form-label">Повторите пароль</label>
+                    {{ form_widget(register_form.password.second, {'attr': {'type': 'password','class': 'form-control', 'id': 'double-password-input'}}) }}
+                    {{ form_errors(register_form.password.second) }}
+                </div>
+                {{ form_widget(register_form.submit, {'attr': {'class': 'btn btn-dark btn-lg', 'style': 'float: right;'}}) }}
+            {{ form_end(register_form) }}
+        </div>
+    </div>
+{% endblock %}

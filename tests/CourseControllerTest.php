@@ -11,6 +11,92 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class CourseControllerTest extends AbstractTest
 {
+    private $incorrectControlsData;
+
+    public function __construct($name = null, array $data = [], $dataName = '')
+    {
+        parent::__construct($name, $data, $dataName);
+
+        $this->incorrectControlsData = [
+            'code' => [
+                [
+                    'value' => function () {
+                        return '';
+                    },
+                    'message' => 'Code can not be empty',
+                ],
+                [
+                    'value' => function () {
+                        bin2hex(random_bytes(501));
+                    },
+                    'message' => 'Maximum code length is 255 symbols',
+                ],
+                [
+                    'value' => function () {
+                        /** @var Course $existingCourse */
+                        $existingCourse = self::getEntityManager()->createQueryBuilder()
+                            ->select('c.code')
+                            ->from(Course::class, 'c')
+                            ->orderBy('c.code DESC')
+                            ->setMaxResults(1)
+                            ->getQuery()
+                            ->getSingleResult();
+                        return $existingCourse->getCode();
+                    },
+                    'message' => ''
+                ],
+            ],
+            'name' => [
+                [
+                    'value' => function () {
+                        return '';
+                    },
+                    'message' => 'Name can not be empty',
+                ],
+                [
+                    'value' => function () {
+                        return bin2hex(random_bytes(128));
+                    },
+                    'message' => 'Maximum name length is 255 symbols',
+                ],
+            ],
+            'description' => [
+                [
+                    'value' => function () {
+                        return bin2hex(random_bytes(501));
+                    },
+                    'message' => 'Maximum description length is 1000 symbols',
+                ],
+            ],
+        ];
+
+    }
+
+    private function genCodes($correctCode)
+    {
+        if ($correctCode) {
+            for ($i = 0; $i !== 10; ++$i) {
+                $punctSymbols = '!@#$%^&*()\'"';
+                $strLength = rand(1, 500) - floor(count($punctSymbols));
+                $correctString = str_shuffle(bin2hex($strLength) . $punctSymbols);
+
+                yield [
+                    'value' => $correctString,
+                    'correct' => true,
+                ];
+            }
+        } else {
+            foreach ($this->incorrectControlsData['codes'] as $incorrectCode) {
+                $incorrectCode['correct'] = false;
+                yield $incorrectCode;
+            }
+        }
+    }
+
+    private function getCourseFormData($correctCode = true, $correctName = true, $correctDescription = true)
+    {
+    }
+
     protected function getFixtures(): array
     {
         return [AppFixtures::class];
@@ -20,6 +106,7 @@ class CourseControllerTest extends AbstractTest
     {
         $client = self::getClient();
         $crawler = $client->request('get', '/courses/');
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
 
         /** @var EntityManagerInterface $em */
         $em = self::getEntityManager();
@@ -27,39 +114,156 @@ class CourseControllerTest extends AbstractTest
         /** @var Course[] $courses */
         $courses = $em->getRepository(Course::class)->findAll();
         foreach ($courses as $course) {
-            $client->request('get', '/courses/' . $course->getId());
+            $courseId = $course->getId();
+            $client->request('get', "/courses/$courseId");
             self::assertEquals(200, $client->getResponse()->getStatusCode());
+        }
+    }
+
+    public function testCourseAvailabilityFromListPage(): void
+    {
+        $client = self::getClient();
+        $crawler = $client->request('get', '/courses/');
+
+        $crawler->filter('a.card-link')->each(static function (Crawler $cardLink) use ($client) {
+            $cardLink = $cardLink->link();
+            $client->click($cardLink);
+            self::assertEquals(200, $client->getResponse()->getStatusCode());
+        });
+    }
+
+    public function testListPageAvailabilityFromCoursePage(): void
+    {
+        $client = self::getClient();
+        /** @var EntityManagerInterface $em */
+        $em = self::getEntityManager();
+
+        /** @var Course[] $courses */
+        $courses = $em->getRepository(Course::class)->findAll();
+        foreach ($courses as $course) {
+            $courseId = $course->getId();
+            $crawler = $client->request('get', "/courses/$courseId");
+            $backLink = $crawler->filter('.btn')->eq(0)->link();
+            $client->click($backLink);
+            self::assertEquals(200, $client->getResponse()->getStatusCode());
+        }
+    }
+
+    public function testCourseAddPageAvailabilityFromListPage(): void
+    {
+        $client = self::getClient();
+        $crawler = $client->request('get', '/courses/');
+        $addPageLink = $crawler->filter('.btn')->eq(0)->link();
+        $client->click($addPageLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+    }
+
+    public function testNotExistingPage(): void
+    {
+        $maxCourse = self::getEntityManager()->createQueryBuilder()
+            ->select('MAX(c.id)')
+            ->from(Course::class, 'c')
+            ->getQuery()
+            ->getSingleScalarResult();
+        $notExistCourse = $maxCourse + 1;
+        $client = self::getClient();
+        $client->request('get', "/courses/$notExistCourse");
+
+        // проверка статуса ответа 404 при обращении к несуществующему курсу
+        self::assertEquals(404, $client->getResponse()->getStatusCode());
+    }
+
+    public function testShowCoursesList(): void
+    {
+        $client = self::getClient();
+
+        /** @var EntityManagerInterface $em */
+        $em = self::getEntityManager();
+
+        /** @var Course[] $courses */
+        $courses = $em->getRepository(Course::class)->findAll();
+
+        $crawler = $client->request('get', '/courses/');
+        $courseCards = $crawler->filter('div .card');
+
+        // проверка соответствия количества отображаемых курсов с количеством курсов в БД
+        self::assertCount($courseCards->count(), $courses);
+
+        foreach ($courses as $course) {
+            $courseCode = $course->getCode();
+            $currentCourseCard = $crawler->filter("div .card[data-code = '$courseCode']");
+            // проверка наличия курса в списке
+            self::assertEquals(1, $currentCourseCard->count());
+
+            $cardLink = $currentCourseCard->filter('a');
+            // проверка наличия ссылки
+            self::assertEquals(1, $cardLink->count());
+
+            $cardHref = $cardLink->eq(0)->attr('href');
+            $courseId = $course->getId();
+            // проверка корректности ссылки на курс
+            self::assertEquals("/courses/$courseId", $cardHref);
+
+            $courseCardTitle = $currentCourseCard->filter('h5');
+            self::assertEquals(1, $courseCardTitle->count());
+            // проверка корректности заголовка курса в списке
+            self::assertEquals($course->getName(), $courseCardTitle->eq(0)->text());
+
+            $courseDescriptionText = $currentCourseCard->filter('p');
+            self::assertEquals(1, $courseDescriptionText->count());
+            // проверка корректности описания курса в списке
+            self::assertEquals($course->getDescription(), $courseDescriptionText->eq(0)->text());
         }
     }
 
     public function testAddCourse(): void
     {
         $client = self::getClient();
-        $crawler = $client->request('get', '/courses/');
-        self::assertEquals(200, $client->getResponse()->getStatusCode());
-
-        $previousCoursesCount = $crawler->filter('.card-title')->count();
-
-        $addLink = $crawler->filter('a.btn')->eq(0)->link();
-        $crawler = $client->click($addLink);
+        $crawler = $client->request('get', '/courses/new');
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
         $addForm = $crawler->filter('form')->eq(0)->form();
+        $testCourseCode = '1234';
         $testCourseName = 'Test course';
         $testCourseDescription = 'Test description';
-        $addForm['course[code]'] = '1234';
+
+        $addForm['course[code]'] = $testCourseCode;
         $addForm['course[name]'] = $testCourseName;
         $addForm['course[description]'] = $testCourseDescription;
         $client->submit($addForm);
 
         self::assertInstanceOf(RedirectResponse::class, $client->getResponse());
         $crawler = $client->followRedirect();
+
+        /** @var EntityManagerInterface $em */
+        $em = self::getEntityManager();
+
+        /** @var Course $addedCourse */
+        $addedCourse = $em->getRepository(Course::class)->findOneBy([
+            'code' => $testCourseCode,
+        ]);
+
+        // проверка добавления курса в БД
+        self::assertNotNull($addedCourse);
+
+        $addedCourseId = $addedCourse->getId();
+        self::assertEquals("/courses/$addedCourseId", $client->getRequest()->getUri());
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
-        $coursesCount = $crawler->filter('.card-title')->count();
-        self::assertEquals($previousCoursesCount + 1, $coursesCount);
-        self::assertStringContainsString($testCourseName, $crawler->filter('.card-title')->last()->text());
-        self::assertStringContainsString($testCourseDescription, $crawler->filter('p.card-text')->last()->text());
+        // проверка заполнения полей курса
+        self::assertEquals($testCourseDescription, $addedCourse->getDescription());
+        self::assertEquals($testCourseName, $addedCourse->getName());
+
+        $crawler = $client->request('get', '/courses/');
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $coursesCount = $crawler->filter(".card-title[data-code = '$testCourseCode']")->count();
+        // проверка отображения добавленного курса на странице списка курсов
+        self::assertEquals(1, $coursesCount);
+    }
+
+    public function testAddIncorrectCourse(): void
+    {
     }
 
     public function testCancelAddCourse(): void
@@ -68,6 +272,7 @@ class CourseControllerTest extends AbstractTest
         $crawler = $client->request('get', '/courses/');
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
+        // количество курсов до перехода на страницу добавления
         $previousCoursesCount = $crawler->filter('.card')->count();
 
         $addLink = $crawler->filter('a.btn')->eq(0)->link();
@@ -78,6 +283,7 @@ class CourseControllerTest extends AbstractTest
         $crawler = $client->click($link);
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
+        // проверка соответствия количества курсов
         self::assertEquals($previousCoursesCount, $crawler->filter('.card')->count());
     }
 
@@ -91,37 +297,43 @@ class CourseControllerTest extends AbstractTest
         /** @var Course[] $courses */
         $courses = $em->getRepository(Course::class)->findAll();
         foreach ($courses as $course) {
-            /** @var Lesson $courseLesson */
-            $courseLesson = $em->getRepository(Lesson::class)->findOneBy([
+
+            /** @var Lesson[] $courseLesson */
+            $courseLessons = $em->getRepository(Lesson::class)->findBy([
                 'course' => $course,
+            ], [
+                'indexNumber' => 'ASC'
             ]);
 
-            $crawler = $client->request('get', '/lessons/' . $courseLesson->getId());
-            self::assertEquals(200, $client->getResponse()->getStatusCode());
-
-            $courseLink = $crawler->filter('a.text-dark')->first();
-            self::assertEquals($courseLink->text(), $course->getName());
-            $crawler = $client->click($courseLink->link());
+            $courseId = $course->getId();
+            $crawler = $client->request('get', "/courses/$courseId");
             self::assertEquals(200, $client->getResponse()->getStatusCode());
 
             $displayedCourseName = $crawler->filter('p')->eq(0)->text();
-            self::assertEquals($displayedCourseName, $course->getName());
+            // проверка отображения имени курса
+            self::assertEquals($course->getName(), $displayedCourseName);
 
             $displayedCourseDescription = $crawler->filter('p')->eq(1)->text();
+            // проверка отображения описания курса
             self::assertEquals($displayedCourseDescription, $course->getDescription());
-            $lessons = $course->getLessons()->toArray();
 
-            usort($lessons, static function (Lesson $f, Lesson $s) {
-                return $f->getIndexNumber() > $s->getIndexNumber();
-            });
+            $displayedLessonsCount = $crawler->filter('td a')->count();
+            self::assertCount($displayedLessonsCount, $courseLessons);
 
-            $crawler->filter('td a')->each(static function (Crawler $node, $i) use ($lessons) {
-                self::assertLessThan(count($lessons), $i);
-                self::assertEquals($node->text(), $lessons[$i]->getName());
+            $crawler->filter('td a')->each(static function (Crawler $node, $i) use ($courseLessons) {
+                // проверка отображения текста уроков
+                self::assertEquals($node->text(), $courseLessons[$i]->getName());
+
+                //проверка ссылки на урок
+                $lessonId = $courseLessons[$i]->getId();
+                self::assertEquals("/lessons/$lessonId", $node->attr('href'));
             });
 
             $backLink = $crawler->filter('a.btn')->first()->link();
             $crawler = $client->click($backLink);
+
+            // проверка редиректа на список курсов
+            self::assertEquals('/courses/', $client->getRequest()->getUri());
             self::assertEquals(200, $client->getResponse()->getStatusCode());
         }
     }
@@ -129,50 +341,54 @@ class CourseControllerTest extends AbstractTest
     public function testEditCourse(): void
     {
         $client = self::getClient();
-        $crawler = $client->request('get', '/courses/');
 
         /** @var EntityManagerInterface $em */
         $em = self::getEntityManager();
-        $courseCount = $crawler->filter('.card')->count();
+
+        /** @var Course[] $courses */
         $courses = $em->getRepository(Course::class)->findAll();
-        self::assertCount($courseCount, $courses);
 
-        for ($i = 0; $i !== $courseCount; ++$i) {
-            $courseName = $crawler->filter('.card h5.card-title')->eq($i)->text();
-            $courseLink = $crawler->filter('.card a.card-link')->eq($i)->link();
+        foreach ($courses as $course) {
+            $courseId = $course->getId();
 
-            /** @var Course $course */
-            $course = $em->getRepository(Course::class)->findOneBy([
-                'name' => $courseName,
-            ]);
-            self::assertNotNull($course, 'Course was not found');
-            $crawler = $client->click($courseLink);
-            self::assertEquals(200, $client->getResponse()->getStatusCode());
-
-            $editLink = $crawler->filter('.btn')->eq(1)->link();
-            $crawler = $client->click($editLink);
+            $crawler = $client->request('get', "/courses/$courseId/edit");
             self::assertEquals(200, $client->getResponse()->getStatusCode());
 
             $form = $crawler->filter('form')->first()->form();
+
+            // проверка корректности отображения существующего курса в формах
             self::assertEquals($course->getCode(), $form['course[code]']->getValue());
             self::assertEquals($course->getName(), $form['course[name]']->getValue());
             self::assertEquals($course->getDescription(), $form['course[description]']->getValue());
+
             $testCourseName = 'test course';
             $testCourseCode = $course->getCode() . 'test';
             $testCourseDescription = 'test course description';
+
             $form['course[code]']->setValue($testCourseCode);
             $form['course[name]']->setValue($testCourseName);
             $form['course[description]']->setValue($testCourseDescription);
             $client->submit($form);
+
+            // проверка редиректа
             self::assertInstanceOf(RedirectResponse::class, $client->getResponse());
             $crawler = $client->followRedirect();
+
+            // проверка url редиректа на страницу просмотра курса
+            self::assertEquals("/courses/$courseId", $client->getRequest()->getUri());
             self::assertEquals(200, $client->getResponse()->getStatusCode());
 
-            $updatedCourseName = $crawler->filter('h5.card-title')->eq($i)->text();
-            $updatedCourseDescription = $crawler->filter('p.card-text')->eq($i)->text();
-            self::assertEquals($testCourseName, $updatedCourseName);
-            self::assertEquals($testCourseDescription, $updatedCourseDescription);
+            $em->refresh($course);
+
+            // проверка изменения значения полей в сущности после обновления
+            self::assertEquals($testCourseName, $course->getName());
+            self::assertEquals($testCourseCode, $course->getCode());
+            self::assertEquals($testCourseDescription, $course->getDescription());
         }
+    }
+
+    public function testIncorrectEditCourse(): void
+    {
     }
 
     public function testDeleteCourse(): void
@@ -182,13 +398,36 @@ class CourseControllerTest extends AbstractTest
         /** @var EntityManagerInterface $em */
         $em = self::getEntityManager();
 
-        /** @var Course[] $courses */
-        $courses = $em->getRepository(Course::class)->findAll();
-        foreach ($courses as $course) {
-            $client->request('get', '/courses/' . $course->getId());
-            self::assertEquals(200, $client->getResponse()->getStatusCode());
-        }
+        $courses = $em->createQueryBuilder()
+            ->select('c.id')
+            ->from(Course::class, 'c')
+            ->getQuery()
+            ->getScalarResult();
 
-        // ?
+        $crawler = $client->request('get', '/courses/');
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+        $courseCount = $crawler->filter('.card')->count();
+
+        foreach ($courses as $course) {
+            $courseId = $course['id'];
+            $crawler = $client->request('get', "/courses/$courseId");
+
+            $deleteButton = $crawler->filter('button.btn-danger')->form();
+            $client->submit($deleteButton);
+            self::assertInstanceOf(RedirectResponse::class, $client->getResponse(), "No deleted: $courseId");
+            $client->followRedirect();
+
+            // проверка url после редиректа
+            self::assertEquals('/courses/', $client->getRequest()->getUri());
+            self::assertEquals(200, $client->getResponse()->getStatusCode());
+            $currentCourseCount = $crawler->filter('.card')->count();
+
+            // проверка уменьшения количества курсов в списке
+            self::assertEquals($courseCount - 1, $currentCourseCount);
+
+            // проверка удаления курса в БД
+            $deletedCourse = $em->getRepository(Course::class)->find($courseId);
+            self::assertNull($deletedCourse);
+        }
     }
 }

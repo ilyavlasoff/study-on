@@ -8,6 +8,7 @@ use Doctrine\Common\DataFixtures\AbstractFixture;
 use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
 use Doctrine\Common\DataFixtures\Loader;
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Client;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
@@ -46,7 +47,7 @@ abstract class AbstractTest extends WebTestCase
     /**
      * Shortcut
      */
-    protected static function getEntityManager()
+    protected static function getEntityManager(): EntityManagerInterface
     {
         return static::$container->get('doctrine')->getManager();
     }
