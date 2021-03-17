@@ -13,6 +13,8 @@
         <server name="SHELL_VERBOSITY" value="-1" />
         <server name="SYMFONY_PHPUNIT_REMOVE" value="" />
         <server name="SYMFONY_PHPUNIT_VERSION" value="8.5" />
+        <server name="BILLING_URL_BASE" value="billing.study-on.local"/>
+        <server name="BILLING_API_VERSION" value="v1"/>
     </php>
 
     <testsuites>
