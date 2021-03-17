@@ -8,6 +8,7 @@ use App\Entity\Lesson;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\Routing\Generator\UrlGenerator;
 
 class CourseControllerTest extends AbstractTest
 {
@@ -18,83 +19,37 @@ class CourseControllerTest extends AbstractTest
         parent::__construct($name, $data, $dataName);
 
         $this->incorrectControlsData = [
-            'code' => [
-                [
-                    'value' => function () {
-                        return '';
-                    },
-                    'message' => 'Code can not be empty',
-                ],
-                [
-                    'value' => function () {
-                        bin2hex(random_bytes(501));
-                    },
-                    'message' => 'Maximum code length is 255 symbols',
-                ],
-                [
-                    'value' => function () {
-                        /** @var Course $existingCourse */
-                        $existingCourse = self::getEntityManager()->createQueryBuilder()
-                            ->select('c.code')
-                            ->from(Course::class, 'c')
-                            ->orderBy('c.code DESC')
-                            ->setMaxResults(1)
-                            ->getQuery()
-                            ->getSingleResult();
-                        return $existingCourse->getCode();
-                    },
-                    'message' => ''
-                ],
+            [
+                'code' => '',
+                'name' => 'Name',
+                'description' => 'Description',
+                'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Code can not be empty']],
             ],
-            'name' => [
-                [
-                    'value' => function () {
-                        return '';
-                    },
-                    'message' => 'Name can not be empty',
-                ],
-                [
-                    'value' => function () {
-                        return bin2hex(random_bytes(128));
-                    },
-                    'message' => 'Maximum name length is 255 symbols',
-                ],
+            [
+                'code' => bin2hex(random_bytes(501)),
+                'name' => 'Name',
+                'description' => 'Description',
+                'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Maximum code length is 255 symbols']],
             ],
-            'description' => [
-                [
-                    'value' => function () {
-                        return bin2hex(random_bytes(501));
-                    },
-                    'message' => 'Maximum description length is 1000 symbols',
-                ],
+            [
+                'code' => bin2hex(random_bytes(100)),
+                'name' => '',
+                'description' => 'Description',
+                'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Name can not be empty']],
+            ],
+            [
+                'code' => bin2hex(random_bytes(100)),
+                'name' => bin2hex(random_bytes(128)),
+                'description' => 'Description',
+                'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Maximum name length is 255 symbols']],
+            ],
+            [
+                'code' => bin2hex(random_bytes(100)),
+                'name' => 'Name',
+                'description' => bin2hex(random_bytes(501)),
+                'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Maximum description length is 1000 symbols']],
             ],
         ];
-
-    }
-
-    private function genCodes($correctCode)
-    {
-        if ($correctCode) {
-            for ($i = 0; $i !== 10; ++$i) {
-                $punctSymbols = '!@#$%^&*()\'"';
-                $strLength = rand(1, 500) - floor(count($punctSymbols));
-                $correctString = str_shuffle(bin2hex($strLength) . $punctSymbols);
-
-                yield [
-                    'value' => $correctString,
-                    'correct' => true,
-                ];
-            }
-        } else {
-            foreach ($this->incorrectControlsData['codes'] as $incorrectCode) {
-                $incorrectCode['correct'] = false;
-                yield $incorrectCode;
-            }
-        }
-    }
-
-    private function getCourseFormData($correctCode = true, $correctName = true, $correctDescription = true)
-    {
     }
 
     protected function getFixtures(): array
@@ -264,6 +219,45 @@ class CourseControllerTest extends AbstractTest
 
     public function testAddIncorrectCourse(): void
     {
+        $client = self::getClient();
+        $crawler = $client->request('get', $client->getContainer()->get('router')->generate('course_index'));
+        $addLink = $crawler->filter('.btn')->first()->link();
+        $crawler = $client->click($addLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $existingCourse = [
+            'code' => self::getEntityManager()->createQueryBuilder()
+                ->select('c.code')
+                ->from(Course::class, 'c')
+                ->orderBy('c.code DESC')
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getSingleResult()
+                ->getCode(),
+            'name' => 'Name',
+            'description' => 'Description',
+            'messages' => [['element' => '', 'text' => 'This course is already exists']],
+        ];
+
+        $incorrectCourseData = $this->incorrectControlsData;
+        $incorrectCourseData[] = $existingCourse;
+
+        foreach ($incorrectCourseData as $data) {
+            // выбор формы добавления
+            $addForm = $crawler->filter('form')->first()->form();
+            $addForm['course[name]'] = $data['name'];
+            $addForm['course[code]'] = $data['code'];
+            $addForm['course[description]'] = $data['description'];
+            $client->submit($addForm);
+
+            self::assertEquals(302, $client->getResponse()->getStatusCode());
+            $crawler = $client->followRedirect();
+
+            self::assertEquals(
+                $client->getContainer()->get('router')->generate('course_new', [], UrlGenerator::ABSOLUTE_URL),
+                $client->getRequest()->getUri()
+            );
+        }
     }
 
     public function testCancelAddCourse(): void
@@ -389,6 +383,28 @@ class CourseControllerTest extends AbstractTest
 
     public function testIncorrectEditCourse(): void
     {
+        $client = self::getClient();
+        $crawler = $client->request('get', $client->getContainer()->get('router')->generate('course_edit'));
+        $addLink = $crawler->filter('.btn')->first()->link();
+        $crawler = $client->click($addLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        foreach ($this->incorrectControlsData as $data) {
+            // выбор формы добавления
+            $addForm = $crawler->filter('form')->first()->form();
+            $addForm['course[name]'] = $data['name'];
+            $addForm['course[code]'] = $data['code'];
+            $addForm['course[description]'] = $data['description'];
+            $client->submit($addForm);
+
+            self::assertEquals(302, $client->getResponse()->getStatusCode());
+            $crawler = $client->followRedirect();
+
+            self::assertEquals(
+                $client->getContainer()->get('router')->generate('course_edit', [], UrlGenerator::ABSOLUTE_URL),
+                $client->getRequest()->getUri()
+            );
+        }
     }
 
     public function testDeleteCourse(): void

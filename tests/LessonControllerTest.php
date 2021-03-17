@@ -7,9 +7,44 @@ use App\Entity\Course;
 use App\Entity\Lesson;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\Routing\Generator\UrlGenerator;
 
 class LessonControllerTest extends AbstractTest
 {
+    private $incorrectLessonData;
+
+    public function __construct($name = null, array $data = [], $dataName = '')
+    {
+        parent::__construct($name, $data, $dataName);
+
+        $this->incorrectLessonData = [
+            [
+                'name' => '',
+                'indexNumber' => '101',
+                'content' => 'Content',
+                'message' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Name can not be blank']]
+            ],
+            [
+                'name' => bin2hex(random_bytes(1000)),
+                'indexNumber' => '101',
+                'content' => 'Content',
+                'message' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Name max length is 255 symbols']]
+            ],
+            [
+                'name' => bin2hex(random_bytes(100)),
+                'indexNumber' => 'qwerty',
+                'content' => 'Content',
+                'message' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Index value must be numeric']]
+            ],
+            [
+                'name' => '',
+                'indexNumber' => '101',
+                'content' => 'Content',
+                'message' => [['element' => '.form-error-message', 'index' => 0, 'text' => '']]
+            ],
+        ];
+    }
+
     protected function getFixtures(): array
     {
         return [AppFixtures::class];
@@ -191,7 +226,50 @@ class LessonControllerTest extends AbstractTest
         $client->click($lessonLink);
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
-        //$deleteLink = $crawler->filter('form .btn')->eq(0)->link();
-        //$client->click($deleteLink);
+        $deleteLink = $crawler->filter('form .btn')->eq(0)->link();
+        $client->click($deleteLink);
+
+        self::assertInstanceOf(RedirectResponse::class, $client->getResponse());
+        $client->followRedirect();
+    }
+
+    public function testEditIncorrectLesson(): void
+    {
+        $client = self::getClient();
+        $crawler = $client->request('GET', '/courses/');
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $cardLink = $crawler->filter('a.card-link')->eq(0)->link();
+        $crawler = $client->click($cardLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $lessonLink = $crawler->filter('table tbody tr a')->eq(0)->link();
+        $crawler = $client->click($lessonLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $oldLessonName = $crawler->filter('h1')->eq(0)->text();
+        $oldLessonContent = $crawler->filter('p')->eq(0)->text();
+
+        $editLink = $crawler->filter('a.btn')->link();
+        $crawler = $client->click($editLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+
+        $editLessonForm = $crawler->filter('form')->eq(0)->form();
+
+        foreach ($this->incorrectLessonData as $incorrectLesson) {
+            $editLessonForm['lesson[name]']->setValue($incorrectLesson['name']);
+            $editLessonForm['lesson[indexNumber]']->setValue($incorrectLesson['indexNumber']);
+            $editLessonForm['lesson[content]']->setValue($incorrectLesson['content']);
+            $client->submit($editLessonForm);
+
+            self::assertEquals(302, $client->getResponse()->getStatusCode());
+            $crawler = $client->followRedirect();
+
+            foreach ($incorrectLesson['message'] as $errorMessage) {
+                $errorLabel = $crawler->filter($errorMessage['element'])->eq($errorMessage['index']);
+                self::assertNotNull($errorLabel);
+                self::assertEquals($errorMessage['text'], $errorLabel->text());
+            }
+        }
     }
 }

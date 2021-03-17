@@ -11,7 +11,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 /**
  * @ORM\Entity(repositoryClass=CourseRepository::class)
- * @UniqueEntity("code")
+ * @UniqueEntity("code", message="This course is already exists")
  */
 class Course
 {
