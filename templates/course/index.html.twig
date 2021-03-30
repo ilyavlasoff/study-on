@@ -12,14 +12,15 @@
             <div class="col">
                 {% if courses|length %}
                 <div class="d-flex flex-row flex-wrap">
-                    {% for course in courses %}
-                        <div class="card mr-2 mb-2" data-code="{{ course.code }}">
+                    {% for i in courses|keys %}
+                        <div class="card mr-2 mb-2" data-code="{{ courses[i].code }}">
                             <div class="card-body">
-                                <h5 class="card-title">{{ course.name }}</h5>
-                                <p class="card-text">{{ course.description }}</p>
+                                <h5 class="card-title">{{ courses[i].name }}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">{{ prices[i].price == 0 ? 'Бесплатно' : prices[i].price|round(2, 'ceil') ~ ' Р' }}</h6>
+                                <p class="card-text">{{ courses[i].description }}</p>
                             </div>
                             <div class="card-footer">
-                                <a href="{{ path('course_show', {'id': course.id}) }}" class="card-link text-dark">Просмотр</a>
+                                <a href="{{ path('course_show', {'id': courses[i].id}) }}" class="card-link text-dark">Просмотр</a>
                             </div>
                         </div>
                     {% endfor %}

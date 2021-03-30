@@ -2,45 +2,53 @@
 
 namespace App\Controller;
 
-use App\Exception\AuthenticationException;
-use App\Exception\BillingUnavailableException;
-use App\Exception\FailureResponseException;
-use App\Service\BillingClient;
+use App\Security\User;
+use App\Service\PersonalQueryClient;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 
+/**
+ * Class UserController
+ * @package App\Controller
+ * @Route("/profile")
+ */
 class UserController extends AbstractController
 {
-    private $billingClient;
+    private $personalQueryClient;
 
-    public function __construct(BillingClient $billingClient)
+    public function __construct(PersonalQueryClient $personalQueryClient)
     {
-        $this->billingClient = $billingClient;
+        $this->personalQueryClient = $personalQueryClient;
     }
 
     /**
-     * @Route("/profile", name="user_profile")
+     * @Route("/", name="user_profile")
      */
     public function profile()
     {
-        try {
-            $currentUser = $this->billingClient->currentClient();
-        } catch (BillingUnavailableException $e) {
-            return $this->render('error/error.html.twig', [
-                'error' => 'Сервис временно недоступен',
-            ]);
-        } catch (FailureResponseException $e) {
-            return $this->render('error/error.html.twig', [
-                'error' => implode(", ", $e->getFailureErrors()),
-            ]);
-        } catch (AuthenticationException $e) {
-            return $this->render('error/error.html.twig', [
-                'error' => $e->getMessage(),
-            ]);
-        }
+        /** @var User $appUser */
+        $appUser = $this->getUser();
+
+        $userProfileData = $this->personalQueryClient->currentClient($appUser);
 
         return $this->render('user/profile.html.twig', [
-            'profile' => $currentUser,
+            'profile' => $userProfileData,
+        ]);
+    }
+
+    /**
+     * @Route("/transactions", name="user_transactions")
+     */
+    public function transactions()
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $userTransactions = $this->personalQueryClient->getClientTransactions($user);
+
+        return $this->render('user/transaction_page.twig', [
+            'transactions' => $userTransactions,
+            'username' => $user->getUsername(),
         ]);
     }
 }

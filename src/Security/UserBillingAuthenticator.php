@@ -6,7 +6,7 @@ use App\Exception\AuthenticationException;
 use App\Exception\BillingUnavailableException;
 use App\Exception\FailureResponseException;
 use App\Model\UserRegisterCredentialsDto;
-use App\Service\BillingClient;
+use App\Service\AuthenticationClient;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -29,16 +29,16 @@ class UserBillingAuthenticator extends AbstractFormLoginAuthenticator
 
     private $urlGenerator;
     private $csrfTokenManager;
-    private $billingClient;
+    private $authenticationClient;
 
     public function __construct(
         UrlGeneratorInterface $urlGenerator,
         CsrfTokenManagerInterface $csrfTokenManager,
-        BillingClient $billingClient
+        AuthenticationClient $authenticationClient
     ) {
         $this->urlGenerator = $urlGenerator;
         $this->csrfTokenManager = $csrfTokenManager;
-        $this->billingClient = $billingClient;
+        $this->authenticationClient = $authenticationClient;
     }
 
     public function supports(Request $request)
@@ -54,6 +54,7 @@ class UserBillingAuthenticator extends AbstractFormLoginAuthenticator
             'password' => $request->request->get('password'),
             'csrf_token' => $request->request->get('_csrf_token'),
         ];
+
         $request->getSession()->set(
             Security::LAST_USERNAME,
             $credentials['email']
@@ -74,7 +75,7 @@ class UserBillingAuthenticator extends AbstractFormLoginAuthenticator
         $userData->setPassword($credentials['password']);
 
         try {
-            $user = $this->billingClient->login($userData);
+            $user = $this->authenticationClient->login($userData);
         } catch (AuthenticationException $e) {
             throw new CustomUserMessageAuthenticationException($e->getMessage());
         } catch (BillingUnavailableException $e) {

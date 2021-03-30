@@ -17,6 +17,12 @@ class AuthenticationDataDto
     private $roles;
 
     /**
+     * @Serializer\SerializedName("refresh_token")
+     * @Serializer\Type("string")
+     */
+    private $refreshToken;
+
+    /**
      * @return mixed
      */
     public function getToken()
@@ -46,6 +52,22 @@ class AuthenticationDataDto
     public function setRoles($roles): void
     {
         $this->roles = $roles;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRefreshToken()
+    {
+        return $this->refreshToken;
+    }
+
+    /**
+     * @param mixed $refreshToken
+     */
+    public function setRefreshToken($refreshToken): void
+    {
+        $this->refreshToken = $refreshToken;
     }
 
 }

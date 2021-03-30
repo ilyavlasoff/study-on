@@ -3,9 +3,15 @@
 namespace App\Security;
 
 use App\Model\AuthenticationDataDto;
-use App\Model\BillingUserDto;
+use App\Service\JwtDecoder;
+use JMS\Serializer\Annotation as Serializer;
 use Symfony\Component\Security\Core\User\UserInterface;
 
+/**
+ * Class User
+ * @package App\Security
+ * @Serializer\ExclusionPolicy("all)
+ */
 class User implements UserInterface
 {
     private $email;
@@ -14,16 +20,20 @@ class User implements UserInterface
 
     private $apiToken;
 
+    /**
+     * @Serializer\Expose()
+     * @Serializer\Type("string")
+     * @Serializer\SerializedName("refresh_token")
+     */
+    private $refreshToken;
+
     public static function createFromDto(AuthenticationDataDto $authenticationDataDto)
     {
         $user = new self;
         $user->setRoles($authenticationDataDto->getRoles());
         $user->setApiToken($authenticationDataDto->getToken());
-
-        $tokenParts = explode(".", $authenticationDataDto->getToken());
-        $payload = json_decode(base64_decode($tokenParts[1]), true);
-        $username = $payload['username'];
-        $user->setEmail($username);
+        $user->setEmail(JwtDecoder::extractUsername($authenticationDataDto->getToken()));
+        $user->setRefreshToken($authenticationDataDto->getRefreshToken());
 
         return $user;
     }
@@ -113,4 +123,22 @@ class User implements UserInterface
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
     }
+
+    /**
+     * @return mixed
+     */
+    public function getRefreshToken()
+    {
+        return $this->refreshToken;
+    }
+
+    /**
+     * @param mixed $refreshToken
+     */
+    public function setRefreshToken($refreshToken): void
+    {
+        $this->refreshToken = $refreshToken;
+    }
+
+
 }

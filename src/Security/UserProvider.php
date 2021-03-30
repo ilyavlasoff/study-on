@@ -2,6 +2,12 @@
 
 namespace App\Security;
 
+use App\Exception\AuthenticationException;
+use App\Exception\BillingUnavailableException;
+use App\Exception\FailureResponseException;
+use App\Service\AuthenticationClient;
+use App\Service\BillingClient;
+use App\Service\JwtDecoder;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
@@ -10,6 +16,13 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
 {
+    private $authenticationClient;
+
+    public function __construct(AuthenticationClient $authenticationClient)
+    {
+        $this->authenticationClient = $authenticationClient;
+    }
+
     /**
      * Symfony calls this method if you use features like switch_user
      * or remember_me.
@@ -23,11 +36,10 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
      */
     public function loadUserByUsername($username)
     {
-        // Load a User object from your data source or throw UsernameNotFoundException.
-        // The $username argument may not actually be a username:
-        // it is whatever value is being returned by the getUsername()
-        // method in your User class.
-        throw new \Exception('TODO: fill in loadUserByUsername() inside '.__FILE__);
+        $user = new User();
+
+        $user->setEmail($username);
+        return $user;
     }
 
     /**
@@ -41,15 +53,26 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
      * If your firewall is "stateless: true" (for a pure API), this
      * method is not called.
      *
+     * @param UserInterface $user
      * @return UserInterface
+     * @throws \Exception
      */
-    public function refreshUser(UserInterface $user)
+    public function refreshUser(UserInterface $user): UserInterface
     {
         if (!$user instanceof User) {
             throw new UnsupportedUserException(sprintf('Invalid user class "%s".', get_class($user)));
         }
 
-        return $user;
+        $expires = JwtDecoder::extractExpires($user->getApiToken());
+        if ((new \DateTime())->add(new \DateInterval('PT5M')) < $expires) {
+            return $user;
+        }
+
+        try {
+            return $this->authenticationClient->updateJwt($user);
+        } catch (\Exception $e) {
+            return $user;
+        }
     }
 
     /**

@@ -5,14 +5,49 @@ namespace App\Tests;
 use App\DataFixtures\AppFixtures;
 use App\Entity\Course;
 use App\Entity\Lesson;
+use App\Security\User;
+use App\Service\BillingClient;
+use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
+use JMS\Serializer\SerializerInterface;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Generator\UrlGenerator;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class CourseControllerTest extends AbstractTest
 {
     private $incorrectControlsData;
+
+    /**
+     * @var HttpClientInterface
+     */
+    private $httpClient;
+
+    /**
+     * @var SerializerInterface
+     */
+    private $serializer;
+
+    private $billingUrlBase;
+    private $billingApiVersion;
+
+    /**
+     * @var TokenStorageInterface
+     */
+    private $tokenStorage;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->httpClient = self::$container->get('http_client');
+        $this->serializer = self::$container->get('jms_serializer');
+        $this->tokenStorage = self::$container->get('security.token_storage');
+        $this->billingUrlBase = 'billing.study-on.local';
+        $this->billingApiVersion = 'v1';
+    }
 
     public function __construct($name = null, array $data = [], $dataName = '')
     {
@@ -52,6 +87,51 @@ class CourseControllerTest extends AbstractTest
         ];
     }
 
+    private function setUpMock()
+    {
+        $client = self::getClient();
+
+        $client->disableReboot();
+
+        $client->getContainer()->set(
+            BillingClient::class,
+            new BillingClientMock(
+                $this->billingUrlBase,
+                $this->billingApiVersion,
+                $this->httpClient,
+                $this->serializer,
+                $this->tokenStorage
+            )
+        );
+        return $client;
+    }
+
+    private function logInAdmin()
+    {
+        $admin = new User();
+        $admin->setEmail('admin@test.com');
+        $admin->setApiToken('password');
+        $admin->setRoles(['ROLE_SUPER_ADMIN']);
+        $this->logIn($admin);
+    }
+
+    private function logInUser()
+    {
+        $user = new User();
+        $user->setEmail('user@test.com');
+        $user->setApiToken('password');
+        $user->setRoles(['ROLE_USER']);
+        $this->logIn($user);
+    }
+
+    private function logIn(User $user)
+    {
+        $providerKey = 'main';
+        $token = new UsernamePasswordToken($user, null, $providerKey, $user->getRoles());
+        $this->tokenStorage->setToken($token);
+        self::$container->get('session')->set('_security_' . $providerKey, serialize($token));
+    }
+
     protected function getFixtures(): array
     {
         return [AppFixtures::class];
@@ -59,7 +139,15 @@ class CourseControllerTest extends AbstractTest
 
     public function testCourseAvailabilityByDirectLink(): void
     {
-        $client = self::getClient();
+        $client = $this->setUpMock();
+
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
+
         $crawler = $client->request('get', '/courses/');
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
@@ -77,7 +165,15 @@ class CourseControllerTest extends AbstractTest
 
     public function testCourseAvailabilityFromListPage(): void
     {
-        $client = self::getClient();
+        $client = $this->setUpMock();
+
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
+
         $crawler = $client->request('get', '/courses/');
 
         $crawler->filter('a.card-link')->each(static function (Crawler $cardLink) use ($client) {
@@ -89,11 +185,17 @@ class CourseControllerTest extends AbstractTest
 
     public function testListPageAvailabilityFromCoursePage(): void
     {
-        $client = self::getClient();
-        /** @var EntityManagerInterface $em */
+        $client = $this->setUpMock();
+
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
+
         $em = self::getEntityManager();
 
-        /** @var Course[] $courses */
         $courses = $em->getRepository(Course::class)->findAll();
         foreach ($courses as $course) {
             $courseId = $course->getId();
@@ -106,7 +208,15 @@ class CourseControllerTest extends AbstractTest
 
     public function testCourseAddPageAvailabilityFromListPage(): void
     {
-        $client = self::getClient();
+        $client = $this->setUpMock();
+
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
+
         $crawler = $client->request('get', '/courses/');
         $addPageLink = $crawler->filter('.btn')->eq(0)->link();
         $client->click($addPageLink);
@@ -116,12 +226,22 @@ class CourseControllerTest extends AbstractTest
     public function testNotExistingPage(): void
     {
         $maxCourse = self::getEntityManager()->createQueryBuilder()
-            ->select('MAX(c.id)')
+            ->select('c.id')
             ->from(Course::class, 'c')
+            ->orderBy('c.id', 'DESC')
             ->getQuery()
+            ->setMaxResults(1)
             ->getSingleScalarResult();
         $notExistCourse = $maxCourse + 1;
-        $client = self::getClient();
+
+        $client = $this->setUpMock();
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
+
         $client->request('get', "/courses/$notExistCourse");
 
         // проверка статуса ответа 404 при обращении к несуществующему курсу
@@ -130,14 +250,17 @@ class CourseControllerTest extends AbstractTest
 
     public function testShowCoursesList(): void
     {
-        $client = self::getClient();
+        $client = $this->setUpMock();
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
 
-        /** @var EntityManagerInterface $em */
         $em = self::getEntityManager();
 
-        /** @var Course[] $courses */
         $courses = $em->getRepository(Course::class)->findAll();
-
         $crawler = $client->request('get', '/courses/');
         $courseCards = $crawler->filter('div .card');
 
@@ -173,11 +296,18 @@ class CourseControllerTest extends AbstractTest
 
     public function testAddCourse(): void
     {
-        $client = self::getClient();
+        $client = $this->setUpMock();
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
+
         $crawler = $client->request('get', '/courses/new');
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
-        $addForm = $crawler->filter('form')->eq(0)->form();
+        $addForm = $crawler->filter('form')->form();
         $testCourseCode = '1234';
         $testCourseName = 'Test course';
         $testCourseDescription = 'Test description';
@@ -190,10 +320,8 @@ class CourseControllerTest extends AbstractTest
         self::assertInstanceOf(RedirectResponse::class, $client->getResponse());
         $crawler = $client->followRedirect();
 
-        /** @var EntityManagerInterface $em */
         $em = self::getEntityManager();
 
-        /** @var Course $addedCourse */
         $addedCourse = $em->getRepository(Course::class)->findOneBy([
             'code' => $testCourseCode,
         ]);
@@ -219,7 +347,14 @@ class CourseControllerTest extends AbstractTest
 
     public function testAddIncorrectCourse(): void
     {
-        $client = self::getClient();
+        $client = $this->setUpMock();
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
+
         $crawler = $client->request('get', $client->getContainer()->get('router')->generate('course_index'));
         $addLink = $crawler->filter('.btn')->first()->link();
         $crawler = $client->click($addLink);
@@ -250,9 +385,6 @@ class CourseControllerTest extends AbstractTest
             $addForm['course[description]'] = $data['description'];
             $client->submit($addForm);
 
-            self::assertEquals(302, $client->getResponse()->getStatusCode());
-            $crawler = $client->followRedirect();
-
             self::assertEquals(
                 $client->getContainer()->get('router')->generate('course_new', [], UrlGenerator::ABSOLUTE_URL),
                 $client->getRequest()->getUri()
@@ -262,7 +394,14 @@ class CourseControllerTest extends AbstractTest
 
     public function testCancelAddCourse(): void
     {
-        $client = self::getClient();
+        $client = $this->setUpMock();
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
+
         $crawler = $client->request('get', '/courses/');
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
@@ -283,16 +422,18 @@ class CourseControllerTest extends AbstractTest
 
     public function testShowCourse(): void
     {
-        $client = self::getClient();
+        $client = $this->setUpMock();
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        //$client->followRedirects(true);
 
-        /** @var EntityManagerInterface $em */
         $em = self::getEntityManager();
 
-        /** @var Course[] $courses */
         $courses = $em->getRepository(Course::class)->findAll();
         foreach ($courses as $course) {
-
-            /** @var Lesson[] $courseLesson */
             $courseLessons = $em->getRepository(Lesson::class)->findBy([
                 'course' => $course,
             ], [
@@ -300,12 +441,13 @@ class CourseControllerTest extends AbstractTest
             ]);
 
             $courseId = $course->getId();
-            $crawler = $client->request('get', "/courses/$courseId");
+            $crawler = $client->request('get', "/courses/$courseId/");
             self::assertEquals(200, $client->getResponse()->getStatusCode());
 
             $displayedCourseName = $crawler->filter('p')->eq(0)->text();
             // проверка отображения имени курса
-            self::assertEquals($course->getName(), $displayedCourseName);
+            $courseName = $course->getName();
+            self::assertEquals($courseName, $displayedCourseName);
 
             $displayedCourseDescription = $crawler->filter('p')->eq(1)->text();
             // проверка отображения описания курса
@@ -334,12 +476,15 @@ class CourseControllerTest extends AbstractTest
 
     public function testEditCourse(): void
     {
-        $client = self::getClient();
+        $client = $this->setUpMock();
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
 
-        /** @var EntityManagerInterface $em */
         $em = self::getEntityManager();
-
-        /** @var Course[] $courses */
         $courses = $em->getRepository(Course::class)->findAll();
 
         foreach ($courses as $course) {
@@ -383,8 +528,23 @@ class CourseControllerTest extends AbstractTest
 
     public function testIncorrectEditCourse(): void
     {
-        $client = self::getClient();
-        $crawler = $client->request('get', $client->getContainer()->get('router')->generate('course_edit'));
+        $client = $this->setUpMock();
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
+
+        $manager =  self::getEntityManager();
+        $courseId = $manager->createQueryBuilder()
+            ->select('c.id')
+            ->from(Course::class, 'c')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getResult(AbstractQuery::HYDRATE_SINGLE_SCALAR);
+
+        $crawler = $client->request('get', "/courses/$courseId/edit/");
         $addLink = $crawler->filter('.btn')->first()->link();
         $crawler = $client->click($addLink);
         self::assertEquals(200, $client->getResponse()->getStatusCode());
@@ -397,11 +557,8 @@ class CourseControllerTest extends AbstractTest
             $addForm['course[description]'] = $data['description'];
             $client->submit($addForm);
 
-            self::assertEquals(302, $client->getResponse()->getStatusCode());
-            $crawler = $client->followRedirect();
-
             self::assertEquals(
-                $client->getContainer()->get('router')->generate('course_edit', [], UrlGenerator::ABSOLUTE_URL),
+                $client->getContainer()->get('router')->generate('course_edit', ['id' => $courseId], UrlGenerator::ABSOLUTE_URL),
                 $client->getRequest()->getUri()
             );
         }
@@ -409,11 +566,15 @@ class CourseControllerTest extends AbstractTest
 
     public function testDeleteCourse(): void
     {
-        $client = self::getClient();
+        $client = $this->setUpMock();
+        $this->logInAdmin();
+        /** @var User $user */
+        $user = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($user);
+        self::assertEquals('admin@test.com', $user);
+        $client->followRedirects(true);
 
-        /** @var EntityManagerInterface $em */
         $em = self::getEntityManager();
-
         $courses = $em->createQueryBuilder()
             ->select('c.id')
             ->from(Course::class, 'c')

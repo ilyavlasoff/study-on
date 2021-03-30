@@ -8,6 +8,7 @@ use App\Form\RegisterType;
 use App\Model\UserRegisterCredentialsDto;
 use App\Security\User;
 use App\Security\UserBillingAuthenticator;
+use App\Service\AuthenticationClient;
 use App\Service\BillingClient;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -48,14 +49,14 @@ class SecurityController extends AbstractController
      * @param Request $request
      * @param GuardAuthenticatorHandler $guardHandler
      * @param UserBillingAuthenticator $userAuthenticator
-     * @param BillingClient $billingClient
+     * @param AuthenticationClient $authenticationClient
      * @return Response
      */
     public function register(
         Request $request,
         GuardAuthenticatorHandler $guardHandler,
         UserBillingAuthenticator $userAuthenticator,
-        BillingClient $billingClient
+        AuthenticationClient $authenticationClient
     ): Response {
         if ($this->getUser() instanceof UserInterface) {
             return $this->redirectToRoute('app_index');
@@ -68,7 +69,7 @@ class SecurityController extends AbstractController
         if ($registerForm->isSubmitted() && $registerForm->isValid()) {
 
             try {
-                $user = $billingClient->register($registrationData);
+                $user = $authenticationClient->register($registrationData);
 
             } catch (FailureResponseException $e) {
                 return $this->render('security/register.html.twig', [

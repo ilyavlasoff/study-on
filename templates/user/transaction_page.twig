@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Профиль пользователя{% endblock %}
+
+{% block body %}
+    <h1>Платежи пользователя {{ username }}</h1>
+
+    {% if transactions | length %}
+        <table class="table table-striped">
+            <thead>
+                <th>Тип платежа</th>
+                <th>Сумма</th>
+                <th>Дата</th>
+                <th>Назначение</th>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.type == 'deposit' ? 'Пополнение' : 'Списание' }}</td>
+                        <td>{{ transaction.amount | round(2, 'ceil') ~ ' p.'}}</td>
+                        <td>1</td>
+                        {% if transaction.courseCode %}
+                            <td>Покупка курса: <a href="{{ path('course_show', {'id': transaction.localCourse.id}) }}">{{ transaction.localCourse.name }}</a></td>
+                        {% elseif transaction.type == 'deposit' %}
+                            <td>Пополнение счета</td>
+                        {% else %}
+                            <td>Списание по счету</td>
+                        {% endif %}
+                        <td></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <h3>Вы пока не совершали платежей</h3>
+    {% endif %}
+
+{% endblock %}
