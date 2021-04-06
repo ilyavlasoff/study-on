@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\Course;
 use App\Security\User;
 use JMS\Serializer\SerializerInterface;
 
@@ -18,24 +19,43 @@ class CoursesQueryClient
         $this->serializer = $serializer;
     }
 
-    public function getAvailableCoursesList(): array
+    public function getCoursesList(): array
     {
         try {
-            $coursesResponse = $this->billingClient->billingRequest(
+            $courses = $this->billingClient->billingRequest(
                 'GET',
-                '/courses',
-                null
+                '/courses'
             );
         } catch (\Exception $e) {
             throw $e;
         }
 
         return $this->serializer->deserialize(
-            $coursesResponse,
+            $courses,
             'array<App\Model\CourseListItemDto>',
             'json'
         );
 
+    }
+
+    public function getAuthorizedCoursesList(User $user): array
+    {
+        try {
+            $courses = $this->billingClient->billingRequest(
+                'GET',
+                '/labeled-courses',
+                [],
+                $user->getApiToken()
+            );
+        } catch (\Exception $e) {
+            throw $e;
+        }
+
+        return $this->serializer->deserialize(
+            $courses,
+            'array<App\Model\CourseListItemDto>',
+            'json'
+        );
     }
 
     public function getBoughtCourses(User $user): array
@@ -56,5 +76,19 @@ class CoursesQueryClient
             'array<App\Model\CourseListItemDto>',
             'json'
         );
+    }
+
+    public function getCourseByCode(Course $course)
+    {
+        try {
+            $receivedCourse = $this->billingClient->billingRequest(
+                'GET',
+                "/courses/{$course->getCode()}",
+                [],
+                null
+            );
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 }

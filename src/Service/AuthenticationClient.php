@@ -95,6 +95,7 @@ class AuthenticationClient
     public function updateJwt(User $user): User
     {
         $userOldData =$this->serializer->serialize($user, 'json');
+
         $updatedUserResponse = $this->billingClient->billingRequest(
             'POST',
             '/token/refresh',

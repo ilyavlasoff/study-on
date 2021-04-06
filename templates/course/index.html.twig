@@ -10,17 +10,25 @@
 
         <div class="row">
             <div class="col">
-                {% if courses|length %}
+                {% if entityCourses|length %}
                 <div class="d-flex flex-row flex-wrap">
-                    {% for i in courses|keys %}
-                        <div class="card mr-2 mb-2" data-code="{{ courses[i].code }}">
+                    {% for i in entityCourses|keys %}
+                        <div class="card mr-2 mb-2" data-code="{{ entityCourses[i].code }}">
                             <div class="card-body">
-                                <h5 class="card-title">{{ courses[i].name }}</h5>
-                                <h6 class="card-subtitle mb-2 text-muted">{{ prices[i].price == 0 ? 'Бесплатно' : prices[i].price|round(2, 'ceil') ~ ' Р' }}</h6>
-                                <p class="card-text">{{ courses[i].description }}</p>
+                                <h5 class="card-title">{{ entityCourses[i].name }}</h5>
+                                {% if billingCourses[i].owned %}
+                                    {% if billingCourses[i].type == 'rent' %}
+                                        <h6 class="card-subtitle mb-2 text-primary">Арендовано</h6>
+                                    {% else %}
+                                        <h6 class="card-subtitle mb-2 text-success">Приобретено</h6>
+                                    {% endif %}
+                                {% else %}
+                                    <h6 class="card-subtitle mb-2 text-warning">{{ billingCourses[i].price == 0 ? 'Бесплатно' : billingCourses[i].price|round(2, 'ceil') ~ ' Р' }}</h6>
+                                {% endif  %}
+                                <p class="card-text">{{ entityCourses[i].description }}</p>
                             </div>
                             <div class="card-footer">
-                                <a href="{{ path('course_show', {'id': courses[i].id}) }}" class="card-link text-dark">Просмотр</a>
+                                <a href="{{ path('course_show', {'id': entityCourses[i].id}) }}" class="card-link text-dark">Просмотр</a>
                             </div>
                         </div>
                     {% endfor %}

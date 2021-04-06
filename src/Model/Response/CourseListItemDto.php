@@ -31,6 +31,18 @@ class CourseListItemDto
     private $price;
 
     /**
+     * @var bool
+     * @JMS\Type("bool")
+     */
+    private $owned;
+
+    /**
+     * @var \DateTime
+     * @JMS\Type("datetime")
+     */
+    private $ownedUntil;
+
+    /**
      * @var \DateInterval
      * @JMS\Type("dateinterval")
      */
@@ -114,6 +126,38 @@ class CourseListItemDto
     public function setRentTime(\DateInterval $rentTime): void
     {
         $this->rentTime = $rentTime;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isOwned(): bool
+    {
+        return $this->owned;
+    }
+
+    /**
+     * @param bool $owned
+     */
+    public function setOwned(bool $owned): void
+    {
+        $this->owned = $owned;
+    }
+
+    /**
+     * @return \DateTime
+     */
+    public function getOwnedUntil(): \DateTime
+    {
+        return $this->ownedUntil;
+    }
+
+    /**
+     * @param \DateTime $ownedUntil
+     */
+    public function setOwnedUntil(\DateTime $ownedUntil): void
+    {
+        $this->ownedUntil = $ownedUntil;
     }
 
 

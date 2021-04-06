@@ -8,5 +8,6 @@
     <p>E-mail: {{ profile.username }}</p>
     <p>Роль пользователя: {% if is_granted('ROLE_SUPER_ADMIN') %}администратор{% else %}пользователь{% endif %}</p>
     <p>Баланс: {{ profile.balance | round(2, 'floor') }}</p>
+    <a class="btn btn-dark" href="{{ path('user_transactions') }}">Платежи</a>
 
 {% endblock %}

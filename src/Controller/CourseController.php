@@ -25,33 +25,32 @@ class CourseController extends AbstractController
      */
     public function index(CourseRepository $courseRepository, CoursesQueryClient $coursesQueryClient): Response
     {
-        /** @var CourseListItemDto[] $billingAvailableCourses */
-        $billingAvailableCourses = $coursesQueryClient->getAvailableCoursesList();
+        $user = $this->getUser();
+
+        if ($user instanceof User) {
+            /** @var CourseListItemDto[] $billingAvailableCourses */
+            $billingCourses = $coursesQueryClient->getAuthorizedCoursesList($user);
+        } else {
+            $billingCourses = $coursesQueryClient->getCoursesList();
+        }
 
         /** @var Course[] $contentAvailableCourses */
-        $contentAvailableCourses = $courseRepository->findBy([], ['id' => 'ASC']);
+        $availableCourses = $courseRepository->findAll();
 
-        $coursesPrices = [];
-        foreach ($contentAvailableCourses as $course) {
-            /** @var CourseListItemDto[] $arrayFiltered */
-            $arrayFiltered = array_filter($billingAvailableCourses, static function (CourseListItemDto $item) use ($course) {
+        $orderedBillingCourses = [];
+        foreach ($availableCourses as $course) {
+            $arrayFiltered = array_filter($billingCourses, static function (CourseListItemDto $item) use ($course) {
                 return $item->getCode() === $course->getCode();
             });
 
             if (count($arrayFiltered)) {
-                $coursesPrices[] = array_values($arrayFiltered)[0];
+                $orderedBillingCourses[] = array_values($arrayFiltered)[0];
             }
         }
 
-        /** @var User $user */
-        $user = $this->getUser();
-        if ($user) {
-            $boughtCourses = $coursesQueryClient->getBoughtCourses($user);
-        }
-
         return $this->render('course/index.html.twig', [
-            'courses' => $contentAvailableCourses,
-            'prices' => $coursesPrices,
+            'entityCourses' => $availableCourses,
+            'billingCourses' => $orderedBillingCourses,
         ]);
     }
 
@@ -82,12 +81,20 @@ class CourseController extends AbstractController
     /**
      * @Route("/{id}", name="course_show", methods={"GET"})
      */
-    public function show(Course $course): Response
+    public function show(Course $course, CoursesQueryClient $coursesQueryClient): Response
     {
-        $lessons = $this->getDoctrine()->getRepository(Lesson::class)->findBy(
-            ['course' => $course->getId()],
-            ['indexNumber' => 'ASC']
-        );
+        $user = $this->getUser();
+
+        if ($user instanceof User) {
+            $billingCourse = $coursesQueryClient->getCourseByCode($course->getCode());
+            $lessons = $this->getDoctrine()->getRepository(Lesson::class)->findBy(
+                ['course' => $course->getId()],
+                ['indexNumber' => 'ASC']
+            );
+        } else {
+
+        }
+
 
         return $this->render('course/show.html.twig', [
             'course' => $course,

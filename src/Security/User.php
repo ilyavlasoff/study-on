@@ -10,7 +10,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 /**
  * Class User
  * @package App\Security
- * @Serializer\ExclusionPolicy("all)
+ * @Serializer\ExclusionPolicy("all")
  */
 class User implements UserInterface
 {
