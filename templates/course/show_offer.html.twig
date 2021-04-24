@@ -11,45 +11,49 @@
     <h5>Описание</h5>
     <p class="course-description">{{ course.description }}</p>
 
-    <h5 class="availability-status">
-        {% if billing.type == 'free' %}
-            Курс доступен бесплатно
-        {% elseif billing.type == 'rent' %}
-            Доступна аренда курса<br>
-            {% if billing.rentTime %}
-                Время аренды: {{ billing.rentTime | date("%m мес. %d дн.") }}
+    <div class="alert alert-info" role="alert">
+        <h5 class="availability-status">
+            {% if billing.type == 'free' %}
+                Курс доступен бесплатно
+            {% elseif billing.type == 'rent' %}
+                Доступна аренда курса<br>
+                {% if billing.rentTime %}
+                    Время аренды: {{ billing.rentTime | date("%m мес. %d дн.") }}<br>
+                {% endif %}
+                Стоимость аренды: {{ billing.price | round(2, 'ceil') }}
+            {% elseif billing.type == 'buy' %}
+                Доступна покупка курса<br>
+                Стоимость приобретения: {{ billing.price | round(2, 'ceil') }}
+            {% else %}
+                Курс временно недоступен
             {% endif %}
-            Стоимость аренды: {{ billing.price | round(2, 'ceil') }}
-        {% elseif billing.type == 'buy' %}
-            Доступна покупка курса<br>
-            Стоимость приобретения: {{ billing.price | round(2, 'ceil') }}
+        </h5>
+    </div>
+
+    <div class="mb-5">
+        {% if app.user %}
+            {% if allowToBuy %}
+                <a class="btn btn-lg btn-dark" id="buy-btn" href="{{ path('pay_for_course', {'id': course.id}) }}">Приобрести</a>
+            {% else %}
+                <h4 id="no-cash-warning">На вашем счету недостаточно средств для приобретения курса.</h4>
+            {% endif %}
         {% else %}
-            Курс временно недоступен
+            <h4>Возможность покупки курсов станет доступна после регистрации или авторизации</h4>
+            <div style="display: flex; flex-direction: row;">
+                <a class="btn btn-lg btn-dark" href="{{ path('app_register') }}">Регистрация</a>
+                <a class="btn btn-light" href="{{ path('app_login') }}">Уже зарегистрированы?</a>
+            </div>
         {% endif %}
-    </h5>
+    </div>
 
-    {% if app.user %}
-        {% if allowToBuy %}
-            <a class="btn btn-lg btn-dark" id="buy-btn" href="{{ path('pay_for_course', {'id': course.id}) }}">Приобрести</a>
-        {% else %}
-            <h4 id="no-cash-warning">На вашем счету недостаточно средств для приобретения курса.</h4>
+    <div>
+        <h5>Действия</h5>
+        <a class="btn btn-secondary mt-2 back-course-list" href="{{ path('course_index') }}">Назад к списку курсов</a><br>
+        {% if is_granted('ROLE_SUPER_ADMIN') %}
+            <a class="btn btn-dark mt-2" href="{{ path('course_edit', {'id': course.id}) }}">Редактировать курс</a><br>
+            <a class="btn btn-dark mt-2 mb-2" id="add-lesson" href="{{ path('lesson_new', {'course': course.id}) }}">Добавить урок</a><br>
+            {{ include('course/_delete_form.html.twig') }}
         {% endif %}
-    {% else %}
-        <h4>Возможность покупки курсов станет доступна после регистрации или авторизации</h4>
-        <div style="display: flex; flex-direction: row;">
-            <a class="btn btn-lg btn-dark" href="{{ path('app_register') }}">Регистрация</a>
-            <a class="btn btn-light" href="{{ path('app_login') }}">Уже зарегистрированы?</a>
-        </div>
-    {% endif %}
-
-    <h5>Действия</h5>
-
-    <a class="btn btn-secondary mt-2 back-course-list" href="{{ path('course_index') }}">Назад к списку курсов</a><br>
-
-    {% if is_granted('ROLE_SUPER_ADMIN') %}
-        <a class="btn btn-dark mt-2" href="{{ path('course_edit', {'id': course.id}) }}">Редактировать курс</a><br>
-        <a class="btn btn-dark mt-2 mb-2" id="add-lesson" href="{{ path('lesson_new', {'course': course.id}) }}">Добавить урок</a><br>
-        {{ include('course/_delete_form.html.twig') }}
-    {% endif %}
+    </div>
 
 {% endblock %}

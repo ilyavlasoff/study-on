@@ -11,7 +11,7 @@
     <h5>Описание</h5>
     <p class="course-description">{{ course.description }}</p>
 
-    <h4 class="course-bought-status">
+    <h4 class="course-bought-status alert alert-info" role="alert">
         {% if billing.type == 'rent' %}
             Вы арендовали этот курс. Срок аренды закончится через {{ billing.ownedUntil.diff(date()) | date("%m мес. %d дн.") }}
         {% elseif billing.type == 'buy' %}

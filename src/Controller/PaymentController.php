@@ -45,6 +45,8 @@ class PaymentController extends AbstractController
         if ($paymentProceedForm->isSubmitted() && $paymentProceedForm->isValid()) {
             try {
                 $paymentQueryClient->buyCourse($course, $user);
+
+                return new RedirectResponse($this->generateUrl('course_index'));
             } catch (FailureResponseException $e) {
                 $error = $e->getError();
 
@@ -52,8 +54,6 @@ class PaymentController extends AbstractController
                     $this->addFlash('error', $error->getMessage());
                 }
             }
-
-            return new RedirectResponse($this->generateUrl('course_index'));
         }
 
         $courseInformation = [];
