@@ -7,15 +7,21 @@ use App\Entity\Lesson;
 use App\Model\Response\CourseDto;
 use App\Service\CoursesQueryClient;
 use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Persistence\ObjectManager;
 
-class AppFixtures extends Fixture
+class AppFixtures extends Fixture implements FixtureGroupInterface
 {
     private $coursesQueryClient;
 
     public function __construct(CoursesQueryClient $coursesQueryClient)
     {
         $this->coursesQueryClient = $coursesQueryClient;
+    }
+
+    public static function getGroups(): array
+    {
+        return ['loaded'];
     }
 
     public function load(ObjectManager $manager): void

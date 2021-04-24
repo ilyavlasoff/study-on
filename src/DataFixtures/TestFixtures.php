@@ -5,10 +5,16 @@ namespace App\DataFixtures;
 use App\Entity\Course;
 use App\Entity\Lesson;
 use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Persistence\ObjectManager;
 
-class TestFixtures extends Fixture
+class TestFixtures extends Fixture implements FixtureGroupInterface
 {
+    public static function getGroups(): array
+    {
+        return ['local'];
+    }
+
     public function load(ObjectManager $manager)
     {
         $coursesProperties = [
