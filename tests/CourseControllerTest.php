@@ -2,15 +2,12 @@
 
 namespace App\Tests;
 
-use App\DataFixtures\AppFixtures;
 use App\DataFixtures\TestFixtures;
 use App\Entity\Course;
 use App\Entity\Lesson;
-use App\Model\Response\BillingUserDto;
 use App\Model\Response\CourseDto;
 use App\Security\User;
 use App\Service\AuthenticationClient;
-use App\Service\BillingClient;
 use App\Service\CoursesQueryClient;
 use App\Service\PaymentQueryClient;
 use App\Service\PersonalQueryClient;
@@ -27,7 +24,6 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class CourseControllerTest extends AbstractTest
 {
@@ -84,7 +80,7 @@ class CourseControllerTest extends AbstractTest
                 'course[price]' => '123',
                 'course[rentTime][months]' => '2',
                 'course[rentTime][days]' => '3',
-                'course[rentTime][hours]' => '4'
+                'course[rentTime][hours]' => '4',
             ],
             [
                 'course[code]' => 'ca3',
@@ -105,7 +101,7 @@ class CourseControllerTest extends AbstractTest
                     'course[price]' => '123',
                     'course[rentTime][months]' => '2',
                     'course[rentTime][days]' => '3',
-                    'course[rentTime][hours]' => '4'
+                    'course[rentTime][hours]' => '4',
                 ],
                 'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Code can not be empty']],
             ],
@@ -119,7 +115,7 @@ class CourseControllerTest extends AbstractTest
                     'course[price]' => '123',
                     'course[rentTime][months]' => '2',
                     'course[rentTime][days]' => '3',
-                    'course[rentTime][hours]' => '4'
+                    'course[rentTime][hours]' => '4',
                 ],
                 'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Maximum code length is 255 symbols']],
             ],
@@ -133,7 +129,7 @@ class CourseControllerTest extends AbstractTest
                     'course[price]' => '123',
                     'course[rentTime][months]' => '2',
                     'course[rentTime][days]' => '3',
-                    'course[rentTime][hours]' => '4'
+                    'course[rentTime][hours]' => '4',
                 ],
                 'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Name can not be empty']],
             ],
@@ -147,7 +143,7 @@ class CourseControllerTest extends AbstractTest
                     'course[price]' => '123',
                     'course[rentTime][months]' => '2',
                     'course[rentTime][days]' => '3',
-                    'course[rentTime][hours]' => '4'
+                    'course[rentTime][hours]' => '4',
                 ],
                 'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Maximum name length is 255 symbols']],
             ],
@@ -161,7 +157,7 @@ class CourseControllerTest extends AbstractTest
                     'course[price]' => '123',
                     'course[rentTime][months]' => '2',
                     'course[rentTime][days]' => '3',
-                    'course[rentTime][hours]' => '4'
+                    'course[rentTime][hours]' => '4',
                 ],
                 'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'Maximum description length is 1000 symbols']],
             ],
@@ -186,7 +182,7 @@ class CourseControllerTest extends AbstractTest
                     'course[price]' => '220',
                     'course[rentTime][months]' => '2',
                     'course[rentTime][days]' => '',
-                    'course[rentTime][hours]' => '4'
+                    'course[rentTime][hours]' => '4',
                 ],
                 'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'This value is not valid.']],
             ],
@@ -215,6 +211,7 @@ class CourseControllerTest extends AbstractTest
         $admin->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE4MzksImV4cCI6MTYyMTc2MzgzOSwicm9sZXMiOlsiUk9MRV9TVVBFUl9BRE1JTiJdLCJ1c2VybmFtZSI6ImFkbWluQHRlc3QuY29tIn0.mJPYf0U9u4BjzRGIDwUNvCCJueUcftbYJ1V5pGMSJmI');
         $admin->setRoles(['ROLE_SUPER_ADMIN']);
         $this->logIn($admin);
+
         return $admin;
     }
 
@@ -225,6 +222,7 @@ class CourseControllerTest extends AbstractTest
         $user->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE3MzYsImV4cCI6MTYyMTc2MzczNiwicm9sZXMiOlsiUk9MRV9VU0VSIl0sInVzZXJuYW1lIjoidXNlckB0ZXN0LmNvbSJ9.tGn61X1VS9cnI90NB_pTRyDFAVTqCstx4YIXAbPxSuM');
         $user->setRoles(['ROLE_USER']);
         $this->logIn($user);
+
         return $user;
     }
 
@@ -439,7 +437,6 @@ class CourseControllerTest extends AbstractTest
             // проверка отображения добавленного курса на странице списка курсов
             self::assertEquals(1, $coursesCount);
         }
-
     }
 
     public function testAddIncorrectCourse(): void
@@ -472,7 +469,7 @@ class CourseControllerTest extends AbstractTest
                 'course[price]' => '123',
                 'course[rentTime][months]' => '2',
                 'course[rentTime][days]' => '3',
-                'course[rentTime][hours]' => '4'
+                'course[rentTime][hours]' => '4',
             ],
             'messages' => [['element' => '.form-error-message', 'index' => 0, 'text' => 'This course is already exists']],
         ];
@@ -562,7 +559,7 @@ class CourseControllerTest extends AbstractTest
             // проверка отображения описания курса
             self::assertEquals($displayedCourseDescription, $course->getDescription());
 
-            if($billingCourse->getOwned()) {
+            if ($billingCourse->getOwned()) {
                 // Получение ссылок на уроки
                 $displayedLessonsCount = $crawler->filter('td a')->count();
                 self::assertCount($displayedLessonsCount, $courseLessons);
@@ -610,7 +607,7 @@ class CourseControllerTest extends AbstractTest
         $displayedCourses->each(function (Crawler $node, $i) use ($ownedCourses, $client) {
             $code = $node->attr('data-code');
 
-            $foundedCourses = array_values(array_filter($ownedCourses, function ($course) use($code) {
+            $foundedCourses = array_values(array_filter($ownedCourses, function ($course) use ($code) {
                 return $course->getCode() == $code;
             }));
 
@@ -619,8 +616,8 @@ class CourseControllerTest extends AbstractTest
             $status = $node->filter('.own-status')->eq(0)->text();
             $link = $node->filter('a')->eq(0)->link();
 
-            if($displayedCourse->getOwned() === true) {
-                if($courseType = $displayedCourse->getType() === 'rent') {
+            if (true === $displayedCourse->getOwned()) {
+                if ($courseType = 'rent' === $displayedCourse->getType()) {
                     self::assertEquals("Арендовано до {$displayedCourse->getOwnedUntil()->format('d.m')}", $status);
                 } else {
                     self::assertEquals('Приобретено', $status);
@@ -630,16 +627,16 @@ class CourseControllerTest extends AbstractTest
                 self::assertEquals(200, $client->getResponse()->getStatusCode());
                 $boughtStatusText = $crawler->filter('.course-bought-status')->text();
 
-                if($courseType === 'rent') {
+                if ('rent' === $courseType) {
                     $statusRentString = date_diff($displayedCourse->getOwnedUntil(), new \DateTime())->format('%m мес. %d дн.');
                     self::assertEquals($statusRentString, $boughtStatusText);
-                } elseif ($courseType === 'buy') {
+                } elseif ('buy' === $courseType) {
                     self::assertEquals('Вы приобрели этот курс. Он будет доступен Вам всегда', $boughtStatusText);
-                } elseif ($courseType === 'free') {
+                } elseif ('free' === $courseType) {
                     self::assertEquals('Данный курс является бесплатным', $boughtStatusText);
                 }
             } else {
-                if($displayedCourse->getType() === 'free') {
+                if ('free' === $displayedCourse->getType()) {
                     self::assertEquals('Бесплатно', $status);
                 } else {
                     self::assertEquals(round($displayedCourse->getPrice(), 2) . ' Р', $status);
@@ -649,21 +646,19 @@ class CourseControllerTest extends AbstractTest
                 self::assertEquals(200, $client->getResponse()->getStatusCode());
                 $availabilityStatusText = $crawler->filter('.availability-status')->text();
 
-                if($displayedCourse->getType() === 'rent') {
+                if ('rent' === $displayedCourse->getType()) {
                     $rentTime = $displayedCourse->getRentTime()->format('%m мес. %d дн.');
                     $price = round($displayedCourse->getPrice(), 2);
                     $statusString = "Доступна аренда курса Время аренды: $rentTime Стоимость аренды: $price";
                     self::assertEquals($statusString, $availabilityStatusText);
-                } elseif ($displayedCourse->getType() === 'free') {
+                } elseif ('free' === $displayedCourse->getType()) {
                     self::assertEquals('Курс доступен бесплатно', $availabilityStatusText);
-
-                } elseif ($displayedCourse->getType() === 'buy') {
+                } elseif ('buy' === $displayedCourse->getType()) {
                     $price = round($displayedCourse->getPrice(), 2);
                     $statusString = "Доступна покупка курса Стоимость приобретения: $price";
                     self::assertEquals($statusString, $availabilityStatusText);
                 }
             }
-
         });
     }
 
@@ -698,14 +693,14 @@ class CourseControllerTest extends AbstractTest
                 'course[price]' => '123',
                 'course[rentTime][months]' => '2',
                 'course[rentTime][days]' => '3',
-                'course[rentTime][hours]' => '4'
+                'course[rentTime][hours]' => '4',
             ],
         ];
 
         $course = $em->getRepository(Course::class)->findAll()[0];
 
         $courseId = $course->getId();
-        $courseCode= $course->getCode();
+        $courseCode = $course->getCode();
 
         $crawler = $client->request('get', "/courses/$courseId/edit/");
         self::assertEquals(200, $client->getResponse()->getStatusCode());
@@ -726,7 +721,7 @@ class CourseControllerTest extends AbstractTest
                 $addForm[$inputKey] = $inputValue;
             }
 
-            if($key % 2 === 0) {
+            if (0 === $key % 2) {
                 $randomCode = bin2hex(random_bytes(15));
                 $addForm['course[code]'] = $randomCode;
                 $courseCode = $randomCode;
@@ -839,5 +834,4 @@ class CourseControllerTest extends AbstractTest
             self::assertNull($deletedCourse);
         }
     }
-
 }

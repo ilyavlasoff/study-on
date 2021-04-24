@@ -89,5 +89,4 @@ class ErrorResponseDto
     {
         $this->details = $details;
     }
-    
 }

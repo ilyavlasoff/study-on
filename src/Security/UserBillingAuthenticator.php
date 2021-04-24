@@ -4,7 +4,6 @@ namespace App\Security;
 
 use App\Exception\AuthenticationException;
 use App\Exception\BillingUnavailableException;
-use App\Exception\FailureResponseException;
 use App\Model\Request\UserRegisterCredentialsDto;
 use App\Service\AuthenticationClient;
 use Symfony\Component\HttpFoundation\RedirectResponse;

@@ -3,16 +3,11 @@
 namespace App\Tests\Mocks;
 
 use App\Entity\Course;
-use App\Exception\FailureResponseException;
 use App\Model\Response\BillingUserDto;
-use App\Model\Response\ErrorResponseDto;
 use App\Model\Response\TransactionHistoryDto;
 use App\Security\User;
-use App\Service\BillingClient;
 use App\Service\PersonalQueryClient;
 use Doctrine\ORM\EntityManagerInterface;
-use JMS\Serializer\SerializerInterface;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class PersonalQueryClientMock extends PersonalQueryClient
 {
@@ -42,9 +37,9 @@ class PersonalQueryClientMock extends PersonalQueryClient
     {
         $this->dataMock->testUserValid($user);
 
-        if(array_key_exists($user->getUsername(), $this->dataMock->clientTransactions)) {
+        if (array_key_exists($user->getUsername(), $this->dataMock->clientTransactions)) {
             /** @var TransactionHistoryDto[] $loadedTransactions */
-            $loadedTransactions =  $this->dataMock->clientTransactions[$user->getUsername()];
+            $loadedTransactions = $this->dataMock->clientTransactions[$user->getUsername()];
 
             foreach (array_keys($loadedTransactions) as $transaction) {
                 $courseCode = $loadedTransactions[$transaction]->getCourseCode();

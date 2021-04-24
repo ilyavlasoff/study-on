@@ -9,6 +9,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * Class User
+ *
  * @JMS\ExclusionPolicy("all")
  */
 class User implements UserInterface
@@ -44,7 +45,7 @@ class User implements UserInterface
 
         return $user;
     }
-    
+
     public function updateTokensWithDto(AuthenticationDataDto $authenticationDataDto)
     {
         $this->refreshToken = $authenticationDataDto->getRefreshToken();

@@ -2,7 +2,6 @@
 
 namespace App\Tests;
 
-use App\DataFixtures\AppFixtures;
 use App\DataFixtures\TestFixtures;
 use App\Entity\Course;
 use App\Entity\Lesson;
@@ -18,7 +17,6 @@ use App\Tests\Mocks\DataMock;
 use App\Tests\Mocks\PaymentQueryClientMock;
 use App\Tests\Mocks\PersonalQueryClientMock;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Csrf\TokenStorage\TokenStorageInterface;
 
@@ -96,6 +94,7 @@ class LessonControllerTest extends AbstractTest
         $admin->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE4MzksImV4cCI6MTYyMTc2MzgzOSwicm9sZXMiOlsiUk9MRV9TVVBFUl9BRE1JTiJdLCJ1c2VybmFtZSI6ImFkbWluQHRlc3QuY29tIn0.mJPYf0U9u4BjzRGIDwUNvCCJueUcftbYJ1V5pGMSJmI');
         $admin->setRoles(['ROLE_SUPER_ADMIN']);
         $this->logIn($admin);
+
         return $admin;
     }
 
@@ -106,6 +105,7 @@ class LessonControllerTest extends AbstractTest
         $user->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE3MzYsImV4cCI6MTYyMTc2MzczNiwicm9sZXMiOlsiUk9MRV9VU0VSIl0sInVzZXJuYW1lIjoidXNlckB0ZXN0LmNvbSJ9.tGn61X1VS9cnI90NB_pTRyDFAVTqCstx4YIXAbPxSuM');
         $user->setRoles(['ROLE_USER']);
         $this->logIn($user);
+
         return $user;
     }
 
@@ -116,7 +116,6 @@ class LessonControllerTest extends AbstractTest
         $this->tokenStorage->setToken($token);
         self::$container->get('session')->set('_security_' . $providerKey, serialize($token));
     }
-
 
     public function testLessonDisplayInfo(): void
     {
@@ -169,7 +168,7 @@ class LessonControllerTest extends AbstractTest
                 self::assertEquals(200, $client->getResponse()->getStatusCode());
 
                 $lessonContent = $crawler->filter('p')->eq(0)->text();
-                self::assertEquals($lessonContent,$lessons[$j]->getContent());
+                self::assertEquals($lessonContent, $lessons[$j]->getContent());
 
                 $lessonTitle = $crawler->filter('h1')->eq(0)->text();
                 self::assertEquals($lessonTitle, $lessons[$j]->getName());

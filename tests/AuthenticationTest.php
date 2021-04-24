@@ -2,13 +2,11 @@
 
 namespace App\Tests;
 
-use App\DataFixtures\AppFixtures;
 use App\DataFixtures\TestFixtures;
 use App\Entity\Course;
 use App\Entity\Lesson;
 use App\Security\User;
 use App\Service\AuthenticationClient;
-use App\Service\BillingClient;
 use App\Service\CoursesQueryClient;
 use App\Service\PaymentQueryClient;
 use App\Service\PersonalQueryClient;
@@ -19,12 +17,10 @@ use App\Tests\Mocks\PaymentQueryClientMock;
 use App\Tests\Mocks\PersonalQueryClientMock;
 use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
-use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class AuthenticationTest extends AbstractTest
 {
@@ -72,6 +68,7 @@ class AuthenticationTest extends AbstractTest
         $admin->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE4MzksImV4cCI6MTYyMTc2MzgzOSwicm9sZXMiOlsiUk9MRV9TVVBFUl9BRE1JTiJdLCJ1c2VybmFtZSI6ImFkbWluQHRlc3QuY29tIn0.mJPYf0U9u4BjzRGIDwUNvCCJueUcftbYJ1V5pGMSJmI');
         $admin->setRoles(['ROLE_SUPER_ADMIN']);
         $this->logIn($admin);
+
         return $admin;
     }
 
@@ -82,6 +79,7 @@ class AuthenticationTest extends AbstractTest
         $user->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE3MzYsImV4cCI6MTYyMTc2MzczNiwicm9sZXMiOlsiUk9MRV9VU0VSIl0sInVzZXJuYW1lIjoidXNlckB0ZXN0LmNvbSJ9.tGn61X1VS9cnI90NB_pTRyDFAVTqCstx4YIXAbPxSuM');
         $user->setRoles(['ROLE_USER']);
         $this->logIn($user);
+
         return $user;
     }
 
@@ -280,13 +278,13 @@ class AuthenticationTest extends AbstractTest
 
         // роуты проверяемых путей
         $routesToCheck = [
-            ['routeName' => 'course_new', 'args' => [], 'method'=> 'get'],
-            ['routeName' => 'course_edit', 'args' => ['id' => $course->getId()], 'method'=> 'get'],
-            ['routeName' => 'course_delete', 'args' => ['id' => $course->getId()], 'method'=> 'delete'],
-            ['routeName' => 'lesson_new', 'args' => [], 'method'=> 'get'],
-            ['routeName' => 'lesson_show', 'args' => ['id' => $lessons[0]->getId()], 'method'=> 'get'],
-            ['routeName' => 'lesson_edit', 'args' => ['id' => $lessons[0]->getId()], 'method'=> 'get'],
-            ['routeName' => 'lesson_delete', 'args' => ['id' => $lessons[0]->getId()], 'method'=> 'get'],
+            ['routeName' => 'course_new', 'args' => [], 'method' => 'get'],
+            ['routeName' => 'course_edit', 'args' => ['id' => $course->getId()], 'method' => 'get'],
+            ['routeName' => 'course_delete', 'args' => ['id' => $course->getId()], 'method' => 'delete'],
+            ['routeName' => 'lesson_new', 'args' => [], 'method' => 'get'],
+            ['routeName' => 'lesson_show', 'args' => ['id' => $lessons[0]->getId()], 'method' => 'get'],
+            ['routeName' => 'lesson_edit', 'args' => ['id' => $lessons[0]->getId()], 'method' => 'get'],
+            ['routeName' => 'lesson_delete', 'args' => ['id' => $lessons[0]->getId()], 'method' => 'get'],
         ];
 
         foreach ($routesToCheck as $route) {

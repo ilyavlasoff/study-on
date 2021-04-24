@@ -20,7 +20,6 @@ class AppFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
-
         /** @var CourseDto[] $courses */
         $courses = $this->coursesQueryClient->getCoursesList();
 

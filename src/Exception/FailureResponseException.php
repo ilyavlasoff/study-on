@@ -19,5 +19,4 @@ class FailureResponseException extends \Exception
     {
         return $this->error;
     }
-
 }

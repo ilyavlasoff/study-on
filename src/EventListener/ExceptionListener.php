@@ -11,11 +11,10 @@ class ExceptionListener
     {
         $exception = $event->getThrowable();
 
-        if($exception instanceof FailureResponseException) {
+        if ($exception instanceof FailureResponseException) {
             $error = $exception->getError();
             var_dump("Code: {$error->getCode()}, error: {$error->getError()}, message: {$error->getMessage()}");
             var_dump($error->getDetails());
         }
-
     }
 }

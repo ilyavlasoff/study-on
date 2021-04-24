@@ -196,7 +196,7 @@ class CourseController extends AbstractController
                         $errorsMsg[$errorDetail->getPropertyPath()] = $errorDetail->getMessage();
                     }
                 }
-                if(count($errorsMsg) > 0) {
+                if (count($errorsMsg) > 0) {
                     throw new ValidationException($errorsMsg);
                 }
 

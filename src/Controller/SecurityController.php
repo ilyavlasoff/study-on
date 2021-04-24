@@ -71,7 +71,6 @@ class SecurityController extends AbstractController
         $registerForm->handleRequest($request);
 
         if ($registerForm->isSubmitted() && $registerForm->isValid()) {
-            
             try {
                 $user = $authenticationClient->register($registrationData);
             } catch (ValidationException $e) {
@@ -88,19 +87,17 @@ class SecurityController extends AbstractController
                     'register_form' => $registerForm->createView(),
                     'errors' => $genericErrors,
                 ]);
-                
-           } catch (BillingUnavailableException $e) {
+            } catch (BillingUnavailableException $e) {
                 return $this->render('security/register.html.twig', [
                     'register_form' => $registerForm->createView(),
                     'errors' => $e->getMessage(),
                 ]);
-
-           } catch (\Exception $e) {
+            } catch (\Exception $e) {
                 return $this->render('security/register.html.twig', [
                     'register_form' => $registerForm->createView(),
                     'errors' => ['Undefined error'],
                 ]);
-           }
+            }
 
             return $guardHandler->authenticateUserAndHandleSuccess(
                 $user,

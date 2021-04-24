@@ -26,12 +26,14 @@ class Lesson
 
     /**
      * @ORM\Column(type="string", length=255)
+     *
      * @var string | null
      */
     private $name;
 
     /**
      * @ORM\Column(type="text")
+     *
      * @var string | null
      */
     private $content;
@@ -121,5 +123,4 @@ class Lesson
     {
         $this->indexNumber = $indexNumber;
     }
-
 }

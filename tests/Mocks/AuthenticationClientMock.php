@@ -3,18 +3,11 @@
 namespace App\Tests\Mocks;
 
 use App\Exception\AuthenticationException;
-use App\Exception\FailureResponseException;
 use App\Exception\ValidationException;
 use App\Model\Request\UserRegisterCredentialsDto;
-use App\Model\Response\AuthenticationDataDto;
-use App\Model\Response\BillingUserDto;
 use App\Model\Response\ErrorResponseDto;
 use App\Security\User;
 use App\Service\AuthenticationClient;
-use App\Service\BillingClient;
-use JMS\Serializer\SerializerInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class AuthenticationClientMock extends AuthenticationClient
 {
@@ -28,7 +21,7 @@ class AuthenticationClientMock extends AuthenticationClient
 
     public function register(UserRegisterCredentialsDto $credentials): User
     {
-        if(array_key_exists($credentials->getUsername(), $this->dataMock->registeredUsers)) {
+        if (array_key_exists($credentials->getUsername(), $this->dataMock->registeredUsers)) {
             $details = [
                 'email' => "User with email \"{$credentials->getUsername()}\" is already exists. Try to login instead",
             ];
@@ -57,8 +50,7 @@ class AuthenticationClientMock extends AuthenticationClient
     public function login(UserRegisterCredentialsDto $credentials): User
     {
         if (!array_key_exists($credentials->getUsername(), $this->dataMock->registeredUsers) ||
-            'password' !== $credentials->getPassword())
-        {
+            'password' !== $credentials->getPassword()) {
             throw new AuthenticationException('Invalid credentials.');
         }
 
@@ -69,7 +61,7 @@ class AuthenticationClientMock extends AuthenticationClient
     {
         $this->dataMock->testUserValid($user);
 
-        if($user->getRefreshToken() !== 'refresh') {
+        if ('refresh' !== $user->getRefreshToken()) {
             $refreshError = new ErrorResponseDto();
             $refreshError->setCode(401);
             $refreshError->setMessage('An authentication exception occurred.');

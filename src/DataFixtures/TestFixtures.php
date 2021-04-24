@@ -42,7 +42,7 @@ class TestFixtures extends Fixture
             $manager->persist($course);
 
             $lessonCount = random_int(1, 20);
-            for($i = 0; $i !== $lessonCount; ++$i) {
+            for ($i = 0; $i !== $lessonCount; ++$i) {
                 $lesson = new Lesson();
                 $lesson->setName("Lesson $i for course {$course->getName()}");
                 $lesson->setContent("Test lesson content: lesson $i, course {$course->getName()}");

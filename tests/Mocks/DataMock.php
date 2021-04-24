@@ -45,7 +45,7 @@ class DataMock
                 'title' => 'course1',
                 'owned' => true,
                 'ownedUntil' => (new \DateTime())->modify('+1 month'),
-                'rentTime' => new \DateInterval('P30D')
+                'rentTime' => new \DateInterval('P30D'),
             ],
             [
                 'price' => 100.23,
@@ -61,7 +61,7 @@ class DataMock
                 'title' => 'course3',
                 'owned' => true,
                 'ownedUntil' => (new \DateTime())->modify('+2 month'),
-                'rentTime' => new \DateInterval('P60D')
+                'rentTime' => new \DateInterval('P60D'),
             ],
             [
                 'type' => 'free',
@@ -108,7 +108,7 @@ class DataMock
 
         $boughtCourses = [
             'admin@test.com' => ['c1', 'c2', 'c4'],
-            'user@test.com' => ['c2', 'c3']
+            'user@test.com' => ['c2', 'c3'],
         ];
 
         foreach ($boughtCourses as $username => $boughtList) {
@@ -131,16 +131,15 @@ class DataMock
 
     public function testUserValid(User $user, $role = '')
     {
-        if(!array_key_exists($user->getUsername(), $this->registeredUsers) ||
-            $this->registeredUsers[$user->getUsername()]->getApiToken() !== $user->getApiToken())
-        {
+        if (!array_key_exists($user->getUsername(), $this->registeredUsers) ||
+            $this->registeredUsers[$user->getUsername()]->getApiToken() !== $user->getApiToken()) {
             $error = new ErrorResponseDto();
             $error->setCode(401);
             $error->setMessage('Invalid credentials.');
             throw new FailureResponseException($error);
         }
 
-        if($role && !in_array($role, $this->registeredUsers[$user->getUsername()]->getRoles())) {
+        if ($role && !in_array($role, $this->registeredUsers[$user->getUsername()]->getRoles())) {
             $error = new ErrorResponseDto();
             $error->setCode(403);
             throw new FailureResponseException($error);

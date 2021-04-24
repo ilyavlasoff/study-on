@@ -153,5 +153,4 @@ class CourseTypeMapping
     {
         $this->description = $description;
     }
-
 }

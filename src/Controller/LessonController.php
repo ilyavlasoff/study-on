@@ -65,7 +65,7 @@ class LessonController extends AbstractController
         $courseBelong = $lesson->getCourse();
 
         $courseOwningData = $client->getCourseByCode($courseBelong, $user);
-        
+
         if (!$courseOwningData->getOwned()) {
             throw new AccessDeniedException('Доступ к этому уроку закрыт');
         }

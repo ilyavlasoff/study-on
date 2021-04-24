@@ -138,7 +138,8 @@ class CoursesQueryClient
         return array_key_exists('success', $decodedResult) && $decodedResult['success'];
     }
 
-    public function dropCourse(Course $course, User $user) {
+    public function dropCourse(Course $course, User $user)
+    {
         $result = $this->billingClient->billingRequest(
             'DELETE',
             "/courses/{$course->getCode()}",

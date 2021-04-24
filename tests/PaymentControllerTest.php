@@ -21,7 +21,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class PaymentControllerTest extends AbstractTest
 {
@@ -69,6 +68,7 @@ class PaymentControllerTest extends AbstractTest
         $admin->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE4MzksImV4cCI6MTYyMTc2MzgzOSwicm9sZXMiOlsiUk9MRV9TVVBFUl9BRE1JTiJdLCJ1c2VybmFtZSI6ImFkbWluQHRlc3QuY29tIn0.mJPYf0U9u4BjzRGIDwUNvCCJueUcftbYJ1V5pGMSJmI');
         $admin->setRoles(['ROLE_SUPER_ADMIN']);
         $this->logIn($admin);
+
         return $admin;
     }
 
@@ -79,6 +79,7 @@ class PaymentControllerTest extends AbstractTest
         $user->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE3MzYsImV4cCI6MTYyMTc2MzczNiwicm9sZXMiOlsiUk9MRV9VU0VSIl0sInVzZXJuYW1lIjoidXNlckB0ZXN0LmNvbSJ9.tGn61X1VS9cnI90NB_pTRyDFAVTqCstx4YIXAbPxSuM');
         $user->setRoles(['ROLE_USER']);
         $this->logIn($user);
+
         return $user;
     }
 
@@ -121,7 +122,7 @@ class PaymentControllerTest extends AbstractTest
             self::assertEquals(200, $client->getResponse()->getStatusCode());
 
             // Страница покупки не должна содержать кнопку покупки и должна содерать сообщение о недостаточном балансе
-            $purchaseButtonCount = $crawler->filter(".btn#buy-btn")->count();
+            $purchaseButtonCount = $crawler->filter('.btn#buy-btn')->count();
             $cashWarning = $crawler->filter('#no-cash-warning');
 
             // Проверка кнопки и сообщения
@@ -129,7 +130,6 @@ class PaymentControllerTest extends AbstractTest
             self::assertEquals(1, $cashWarning->count());
             self::assertEquals('На вашем счету недостаточно средств для приобретения курса.', $cashWarning->text());
         }
-
     }
 
     public function testCoursePurchase()
@@ -167,7 +167,7 @@ class PaymentControllerTest extends AbstractTest
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
         // Поиск кнопки покупки, переход на страницу оплаты
-        $purchaseButton = $crawler->filter("a#buy-btn");
+        $purchaseButton = $crawler->filter('a#buy-btn');
         self::assertEquals(1, $purchaseButton->count());
         $crawler = $client->click($purchaseButton->link());
         self::assertEquals(200, $client->getResponse()->getStatusCode());
@@ -263,7 +263,7 @@ class PaymentControllerTest extends AbstractTest
             self::assertGreaterThan(0, count($matches));
             $courseLocalId = $matches[1];
 
-            /**@var Course $courseContent */
+            /** @var Course $courseContent */
             $courseContent = $this->getEntityManager()->getRepository(Course::class)->find($courseLocalId);
             self::assertNotNull($courseContent);
             $courseCode = $courseContent->getCode();
@@ -276,6 +276,7 @@ class PaymentControllerTest extends AbstractTest
                     'Списание' => 'payment',
                     'Пополнение' => 'deposit',
                 ];
+
                 return $loadedCourse->getType() === $operationTypes[$transactionType] ?? null
                     && $loadedCourse->getAmount() === $cost[0]
                     && $loadedCourse->getCourseCode() == $courseCode;
