@@ -3,8 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\LessonRepository;
-use Symfony\Component\Validator\Constraints as Assert;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass=LessonRepository::class)
@@ -26,11 +26,13 @@ class Lesson
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @var string | null
      */
     private $name;
 
     /**
      * @ORM\Column(type="text")
+     * @var string | null
      */
     private $content;
 
@@ -40,56 +42,84 @@ class Lesson
      */
     private $indexNumber;
 
-    public function getId(): ?int
+    /**
+     * @return mixed
+     */
+    public function getId()
     {
         return $this->id;
     }
 
+    /**
+     * @param mixed $id
+     */
+    public function setId($id): void
+    {
+        $this->id = $id;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getCourse()
+    {
+        return $this->course;
+    }
+
+    /**
+     * @param mixed $course
+     */
+    public function setCourse($course): void
+    {
+        $this->course = $course;
+    }
+
+    /**
+     * @return string|null
+     */
     public function getName(): ?string
     {
         return $this->name;
     }
 
-    public function setName(string $name): self
+    /**
+     * @param string|null $name
+     */
+    public function setName(?string $name): void
     {
         $this->name = $name;
-
-        return $this;
     }
 
+    /**
+     * @return string|null
+     */
     public function getContent(): ?string
     {
         return $this->content;
     }
 
-    public function setContent(string $content): self
+    /**
+     * @param string|null $content
+     */
+    public function setContent(?string $content): void
     {
         $this->content = $content;
-
-        return $this;
     }
 
-    public function getIndexNumber(): ?string
+    /**
+     * @return mixed
+     */
+    public function getIndexNumber()
     {
         return $this->indexNumber;
     }
 
-    public function setIndexNumber(?string $indexNumber): self
+    /**
+     * @param mixed $indexNumber
+     */
+    public function setIndexNumber($indexNumber): void
     {
         $this->indexNumber = $indexNumber;
-
-        return $this;
     }
 
-    public function getCourse(): ?Course
-    {
-        return $this->course;
-    }
-
-    public function setCourse(?Course $course): self
-    {
-        $this->course = $course;
-
-        return $this;
-    }
 }

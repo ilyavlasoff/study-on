@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Model;
+namespace App\Model\Request;
 
 use JMS\Serializer\Annotation as Serializer;
 

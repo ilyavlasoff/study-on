@@ -3,51 +3,51 @@
 namespace App\Tests;
 
 use App\DataFixtures\AppFixtures;
+use App\DataFixtures\TestFixtures;
 use App\Entity\Course;
 use App\Entity\Lesson;
 use App\Security\User;
+use App\Service\AuthenticationClient;
+use App\Service\BillingClient;
+use App\Service\CoursesQueryClient;
+use App\Service\PaymentQueryClient;
+use App\Service\PersonalQueryClient;
+use App\Tests\Mocks\AuthenticationClientMock;
+use App\Tests\Mocks\CoursesQueryClientMock;
+use App\Tests\Mocks\DataMock;
+use App\Tests\Mocks\PaymentQueryClientMock;
+use App\Tests\Mocks\PersonalQueryClientMock;
 use Doctrine\ORM\AbstractQuery;
+use Doctrine\ORM\EntityManagerInterface;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use App\Service\BillingClient;
 
 class AuthenticationTest extends AbstractTest
 {
-    /**
-     * @var HttpClientInterface
-     */
-    private $httpClient;
-
-    /**
-     * @var SerializerInterface
-     */
-    private $serializer;
-
-    private $billingUrlBase;
-    private $billingApiVersion;
-
     /**
      * @var TokenStorageInterface
      */
     private $tokenStorage;
 
+    /**
+     * @var EntityManagerInterface
+     */
+    private $entityManager;
+
     protected function setUp(): void
     {
         parent::setUp();
-        $this->httpClient = self::$container->get('http_client');
-        $this->serializer = self::$container->get('jms_serializer');
         $this->tokenStorage = self::$container->get('security.token_storage');
-        $this->billingUrlBase = 'billing.study-on.local';
-        $this->billingApiVersion = 'v1';
+        $this->entityManager = self::$container->get('doctrine.orm.entity_manager');
     }
 
     protected function getFixtures(): array
     {
-        return [AppFixtures::class];
+        return [TestFixtures::class];
     }
 
     private function setUpMock()
@@ -56,35 +56,33 @@ class AuthenticationTest extends AbstractTest
 
         $client->disableReboot();
 
-        $client->getContainer()->set(
-            BillingClient::class,
-            new BillingClientMock(
-                $this->billingUrlBase,
-                $this->billingApiVersion,
-                $this->httpClient,
-                $this->serializer,
-                $this->tokenStorage
-            )
-        );
+        $dataMock = new DataMock();
+        $client->getContainer()->set(AuthenticationClient::class, new AuthenticationClientMock($dataMock));
+        $client->getContainer()->set(CoursesQueryClient::class, new CoursesQueryClientMock($dataMock));
+        $client->getContainer()->set(PaymentQueryClient::class, new PaymentQueryClientMock($dataMock));
+        $client->getContainer()->set(PersonalQueryClient::class, new PersonalQueryClientMock($dataMock, $this->entityManager));
+
         return $client;
     }
 
-    private function logInAdmin()
+    private function logInAdmin(): User
     {
         $admin = new User();
         $admin->setEmail('admin@test.com');
-        $admin->setApiToken('password');
+        $admin->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE4MzksImV4cCI6MTYyMTc2MzgzOSwicm9sZXMiOlsiUk9MRV9TVVBFUl9BRE1JTiJdLCJ1c2VybmFtZSI6ImFkbWluQHRlc3QuY29tIn0.mJPYf0U9u4BjzRGIDwUNvCCJueUcftbYJ1V5pGMSJmI');
         $admin->setRoles(['ROLE_SUPER_ADMIN']);
         $this->logIn($admin);
+        return $admin;
     }
 
-    private function logInUser()
+    private function logInUser(): User
     {
         $user = new User();
         $user->setEmail('user@test.com');
-        $user->setApiToken('password');
+        $user->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE3MzYsImV4cCI6MTYyMTc2MzczNiwicm9sZXMiOlsiUk9MRV9VU0VSIl0sInVzZXJuYW1lIjoidXNlckB0ZXN0LmNvbSJ9.tGn61X1VS9cnI90NB_pTRyDFAVTqCstx4YIXAbPxSuM');
         $user->setRoles(['ROLE_USER']);
         $this->logIn($user);
+        return $user;
     }
 
     private function logIn(User $user)
@@ -111,29 +109,19 @@ class AuthenticationTest extends AbstractTest
 
     public function testCorrectLogin(): void
     {
-        $client = $this->setUpMock();
-        $crawler = $client->request('get', $client->getContainer()->get('router')->generate('app_login'));
-        self::assertEquals(200, $client->getResponse()->getStatusCode());
-        $loginForm = $crawler->filter('form')->first()->form();
+        $user = new User();
+        $user->setEmail('user@test.com');
+        $user->setApiToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlYXQiOjE2MTkxNzE4MzksImV4cCI6MTYyMTc2MzgzOSwicm9sZXMiOlsiUk9MRV9TVVBFUl9BRE1JTiJdLCJ1c2VybmFtZSI6ImFkbWluQHRlc3QuY29tIn0.mJPYf0U9u4BjzRGIDwUNvCCJueUcftbYJ1V5pGMSJmI');
+        $user->setRoles(['ROLE_USER']);
 
-        $userEmail = 'user@test.com';
-        $userPassword = 'password';
-        $loginForm['email'] = $userEmail;
-        $loginForm['password'] = $userPassword;
-        $crawler = $client->submit($loginForm);
-        // проверка перенаправления на  главную страницу
-        self::assertEquals(302, $client->getResponse()->getStatusCode());
-        $crawler = $client->followRedirect();
+        $providerKey = 'main';
+        $token = new UsernamePasswordToken($user, null, $providerKey, $user->getRoles());
+        $this->tokenStorage->setToken($token);
+        self::$container->get('session')->set('_security_' . $providerKey, serialize($token));
 
-        self::assertEquals(
-            $client->getContainer()->get('router')->generate('app_index', [], UrlGenerator::ABSOLUTE_URL),
-            $client->getRequest()->getUri()
-        );
-
-        /** @var User $user */
-        $user = $this->tokenStorage->getToken()->getUsername();
+        $username = $this->tokenStorage->getToken()->getUsername();
         self::assertNotNull($user);
-        self::assertEquals($userEmail, $user);
+        self::assertEquals('user@test.com', $username);
     }
 
     public function testIncorrectLogin(): void
@@ -144,17 +132,17 @@ class AuthenticationTest extends AbstractTest
             [
                 'email' => 'admin@test.com',
                 'password' => '1password',
-                'message' => ['element' => 'div.alert', 'text' => 'Invalid credentials'],
+                'message' => ['element' => 'div.alert', 'text' => 'Invalid credentials.'],
             ],
             [
-                'email' => 'odmin@test.com',
+                'email' => 'wdmin@test.com',
                 'password' => 'password',
-                'message' => ['element' => 'div.alert', 'text' => 'Invalid credentials'],
+                'message' => ['element' => 'div.alert', 'text' => 'Invalid credentials.'],
             ],
         ];
 
         foreach ($incorrectTests as $incorrectTest) {
-            $crawler = $client->request('get', $client->getContainer()->get('router')->generate('app_login'));
+            $crawler = $client->request('get', '/login');
             self::assertEquals(200, $client->getResponse()->getStatusCode());
             $loginForm = $crawler->filter('form')->first()->form();
             $loginForm['email'] = $incorrectTest['email'];
@@ -164,20 +152,17 @@ class AuthenticationTest extends AbstractTest
             self::assertEquals(302, $client->getResponse()->getStatusCode());
             $crawler = $client->followRedirect();
             // повторный редирект на страницу логина
-            self::assertEquals(
-                $client->getContainer()->get('router')->generate('app_login', [], UrlGenerator::ABSOLUTE_URL),
-                $client->getRequest()->getUri()
-            );
+            self::assertEquals('/login', $client->getRequest()->getPathInfo());
 
             $alertText = $crawler->filter($incorrectTest['message']['element'])->text();
-            self::assertEquals($alertText, $incorrectTest['message']['text']);
+            self::assertEquals($incorrectTest['message']['text'], $alertText);
         }
     }
 
     public function testCorrectRegister(): void
     {
         $client = $this->setUpMock();
-        $crawler = $client->request('get', $client->getContainer()->get('router')->generate('app_register'));
+        $crawler = $client->request('get', '/register');
         self::assertEquals(200, $client->getResponse()->getStatusCode());
         $loginForm = $crawler->filter('form')->first()->form();
 
@@ -192,17 +177,11 @@ class AuthenticationTest extends AbstractTest
         $crawler = $client->followRedirect();
 
         self::assertInstanceOf(RedirectResponse::class, $client->getResponse());
-        self::assertEquals(
-            $client->getContainer()->get('router')->generate('app_index', [], UrlGenerator::ABSOLUTE_URL),
-            $client->getRequest()->getUri()
-        );
+        self::assertEquals('/', $client->getRequest()->getPathInfo());
         $crawler = $client->followRedirect();
 
         self::assertEquals(200, $client->getResponse()->getStatusCode());
-        self::assertEquals(
-            $client->getContainer()->get('router')->generate('course_index', [], UrlGenerator::ABSOLUTE_URL),
-            $client->getRequest()->getUri()
-        );
+        self::assertEquals('/courses/', $client->getRequest()->getPathInfo());
 
         /** @var User $user */
         $user = $this->tokenStorage->getToken()->getUsername();
@@ -213,7 +192,7 @@ class AuthenticationTest extends AbstractTest
     public function testIncorrectRegister(): void
     {
         $client = $this->setUpMock();
-        $crawler = $client->request('get', $client->getContainer()->get('router')->generate('app_register'));
+        $crawler = $client->request('get', '/register');
         self::assertEquals(200, $client->getResponse()->getStatusCode());
         $loginForm = $crawler->filter('form')->first()->form();
 
@@ -228,7 +207,7 @@ class AuthenticationTest extends AbstractTest
                 'email' => 'unittest@test.com',
                 'password' => '1234567',
                 'doublePassword' => '1234567',
-                'message' => [['element' => 'div.alert-danger ul li', 'text' => 'This password has been leaked in a data breach, it must not be used. Please use another password']],
+                'message' => [['element' => '.form-error-message', 'text' => 'This password has been leaked in a data breach, it must not be used. Please use another password']],
             ],
             [
                 'email' => 'unittest@test.com',
@@ -240,23 +219,20 @@ class AuthenticationTest extends AbstractTest
                 'email' => 'user@test.com',
                 'password' => '!23SuperP@$$w0rd32!',
                 'doublePassword' => '!23SuperP@$$w0rd32!',
-                'message' => [['element' => 'div.alert-danger ul li', 'text'=> 'User with email "user@test.com" is already exists. Try to login instead']],
-            ]
+                'message' => [['element' => '.form-error-message', 'text' => 'User with email "user@test.com" is already exists. Try to login instead']],
+            ],
         ];
 
         foreach ($incorrectTests as $incorrectTest) {
-            $loginForm['register[email]'] = $incorrectTest['email'];
-            $loginForm['register[password][first]'] = $incorrectTest['password'];
-            $loginForm['register[password][second]'] = $incorrectTest['doublePassword'];
+            $loginForm['register[email]']->setValue($incorrectTest['email']);
+            $loginForm['register[password][first]']->setValue($incorrectTest['password']);
+            $loginForm['register[password][second]']->setValue($incorrectTest['doublePassword']);
             $crawler = $client->submit($loginForm);
 
             self::assertEquals(200, $client->getResponse()->getStatusCode());
 
             // повторный редирект на страницу регистрации
-            self::assertEquals(
-                $client->getContainer()->get('router')->generate('app_register', [], UrlGenerator::ABSOLUTE_URL),
-                $client->getRequest()->getUri()
-            );
+            self::assertEquals('/register', $client->getRequest()->getPathInfo());
 
             foreach ($incorrectTest['message'] as $message) {
                 $errorText = $crawler->filter($message['element'])->first()->text();
@@ -268,25 +244,27 @@ class AuthenticationTest extends AbstractTest
     public function testProfilePage(): void
     {
         $client = $this->setUpMock();
+        $user = $this->logInUser();
 
-        $this->logInUser();
-        /** @var User $user */
-        $user = $this->tokenStorage->getToken()->getUsername();
-        self::assertNotNull($user);
-        self::assertEquals('user@test.com', $user);
+        $username = $this->tokenStorage->getToken()->getUsername();
+        self::assertNotNull($username);
+        self::assertEquals('user@test.com', $username);
+        $client->followRedirects(true);
 
-        $client->request('get', $client->getContainer()->get('router')->generate('course_index'));
-        $client->followRedirect();
-        $client->followRedirect();
-        $crawler = $client->followRedirect();
-
-        $profileLink = $crawler->filter('a.nav-link')->eq(0)->link();
-        $crawler = $client->click($profileLink);
+        // Переход с индекса курсов по кнопке в навбаре
+        $crawler = $client->request('get', '/courses');
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
-        $userEmail = $crawler->filter('p')->eq(0)->text();
-        self::assertStringContainsString($user, $userEmail);
+        $profileLink = $crawler->filter('a[href="/profile/"]')->eq(0)->link();
+        $crawler = $client->click($profileLink);
+        self::assertEquals(200, $client->getResponse()->getStatusCode());
+        self::assertEquals('/profile/', $client->getRequest()->getPathInfo());
 
+        // Проверка наличия имени пользователя
+        $userEmail = $crawler->filter('p')->eq(0)->text();
+        self::assertStringContainsString($username, $userEmail);
+
+        // Проверка наличия роли пользователя
         $userStatus = $crawler->filter('p')->eq(1)->text();
         self::assertStringContainsString('пользователь', $userStatus);
     }
@@ -295,23 +273,24 @@ class AuthenticationTest extends AbstractTest
     {
         $client = $this->setUpMock();
 
+        $course = $this->entityManager->getRepository(Course::class)->findOneBy(['code' => 'c1']);
+        $lessons = $this->entityManager->getRepository(Lesson::class)->findAll();
+
+        $client->followRedirects(true);
+
         // роуты проверяемых путей
         $routesToCheck = [
-            ['routeName' => 'course_index', 'args' => []],
-            ['routeName' => 'course_new', 'args' => []],
-            ['routeName' => 'course_show', 'args' => ['id' => 0]],
-            ['routeName' => 'course_edit', 'args' => ['id' => 0]],
-            ['routeName' => 'course_delete', 'args' => ['id' => 0]],
-            ['routeName' => 'lesson_new', 'args' => []],
-            ['routeName' => 'lesson_show', 'args' => ['id' => 0]],
-            ['routeName' => 'lesson_edit', 'args' => ['id' => 0]],
-            ['routeName' => 'lesson_delete', 'args' => ['id' => 0]],
+            ['routeName' => 'course_new', 'args' => [], 'method'=> 'get'],
+            ['routeName' => 'course_edit', 'args' => ['id' => $course->getId()], 'method'=> 'get'],
+            ['routeName' => 'course_delete', 'args' => ['id' => $course->getId()], 'method'=> 'delete'],
+            ['routeName' => 'lesson_new', 'args' => [], 'method'=> 'get'],
+            ['routeName' => 'lesson_show', 'args' => ['id' => $lessons[0]->getId()], 'method'=> 'get'],
+            ['routeName' => 'lesson_edit', 'args' => ['id' => $lessons[0]->getId()], 'method'=> 'get'],
+            ['routeName' => 'lesson_delete', 'args' => ['id' => $lessons[0]->getId()], 'method'=> 'get'],
         ];
 
         foreach ($routesToCheck as $route) {
-            $client->request('get', $client->getContainer()->get('router')->generate($route['routeName'], $route['args']));
-            self::assertInstanceOf(RedirectResponse::class, $client->getResponse());
-            $client->followRedirect();
+            $client->request($route['method'], $client->getContainer()->get('router')->generate($route['routeName'], $route['args']));
 
             // проверка редиректа на логин
             self::assertEquals(
@@ -330,15 +309,13 @@ class AuthenticationTest extends AbstractTest
         $user = $this->tokenStorage->getToken()->getUsername();
         self::assertNotNull($user);
         self::assertEquals('user@test.com', $user);
+        $client->followRedirects(true);
 
-        $crawler = $client->request('get', $client->getContainer()->get('router')->generate('course_index'));
-        $client->followRedirect();
-        $client->followRedirect();
-        $crawler = $client->followRedirect();
+        $crawler = $client->request('get', '/');
 
         self::assertEquals(200, $client->getResponse()->getStatusCode());
         // кнопка добавления курса
-        $addCourseButtonsCount = $crawler->filter('.btn')->count();
+        $addCourseButtonsCount = $crawler->filter('#add-btn')->count();
         self::assertEquals(0, $addCourseButtonsCount);
 
         // переход на страницу первого курса
@@ -347,10 +324,10 @@ class AuthenticationTest extends AbstractTest
         self::assertEquals(200, $client->getResponse()->getStatusCode());
 
         // кнопки добавления урока и редактирования курса
-        $editButtonsCount = $crawler->filter('.btn-dark')->count();
+        $editButtonsCount = $crawler->filter('#course-edit')->count();
         self::assertEquals(0, $editButtonsCount);
         // кнопка удаления курса
-        $deleteButtonCount = $crawler->filter('.btn-danger')->count();
+        $deleteButtonCount = $crawler->filter('#add-lesson')->count();
         self::assertEquals(0, $deleteButtonCount);
 
         // переход на страницу первого урока

@@ -2,9 +2,8 @@
 
 namespace App\Form;
 
-use App\Model\UserRegisterCredentialsDto;
+use App\Model\Request\UserRegisterCredentialsDto;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\ButtonType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
@@ -22,9 +21,9 @@ class RegisterType extends AbstractType
             ->add('email', EmailType::class, [
                 'constraints' => [
                     new Email([
-                        'message' => 'Значение {{ value }} не является действительным e-mail'
-                    ])
-                ]
+                        'message' => 'Значение {{ value }} не является действительным e-mail',
+                    ]),
+                ],
             ])
             ->add('password', RepeatedType::class, [
                 'type' => PasswordType::class,
@@ -33,19 +32,19 @@ class RegisterType extends AbstractType
                 'constraints' => [
                     new Length([
                         'min' => 6,
-                        'minMessage' => 'Пароль должен содержать не менее {{ limit }} символов'
-                    ])
-                ]
+                        'minMessage' => 'Пароль должен содержать не менее {{ limit }} символов',
+                    ]),
+                ],
             ])
             ->add('submit', SubmitType::class, [
-                'label' => 'Регистрация'
+                'label' => 'Регистрация',
             ]);
     }
 
     public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults([
-            'data_class' => UserRegisterCredentialsDto::class
+            'data_class' => UserRegisterCredentialsDto::class,
         ]);
     }
 }

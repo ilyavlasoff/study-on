@@ -3,28 +3,22 @@
 namespace App\Service;
 
 use App\Entity\Course;
-use App\Exception\AuthenticationException;
 use App\Exception\BillingUnavailableException;
-use App\Exception\FailureResponseException;
-use App\Model\BillingUserDto;
-use App\Model\TransactionHistoryDto;
+use App\Model\Response\BillingUserDto;
+use App\Model\Response\TransactionHistoryDto;
 use App\Security\User;
 use Doctrine\ORM\EntityManagerInterface;
-use JMS\Serializer\Serializer;
 use JMS\Serializer\SerializerInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 class PersonalQueryClient
 {
     private $billingClient;
     private $serializer;
-    private $tokenStorage;
     private $entityManager;
 
     public function __construct(
         BillingClient $billingClient,
         SerializerInterface $serializer,
-        TokenStorageInterface $tokenStorage,
         EntityManagerInterface $entityManager
     ) {
         $this->billingClient = $billingClient;
@@ -34,9 +28,8 @@ class PersonalQueryClient
 
     /**
      * @return BillingUserDto
-     * @throws AuthenticationException
+     *
      * @throws BillingUnavailableException
-     * @throws FailureResponseException
      */
     public function currentClient(User $user): BillingUserDto
     {
@@ -69,7 +62,7 @@ class PersonalQueryClient
         /** @var TransactionHistoryDto[] $clientTransactions */
         $clientTransactions = $this->serializer->deserialize(
             $clientTransactionsResponse,
-            'array<App\Model\TransactionHistoryDto>',
+            'array<App\Model\Response\TransactionHistoryDto>',
             'json'
         );
 

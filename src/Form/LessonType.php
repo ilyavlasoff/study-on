@@ -16,6 +16,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Regex;
+use Symfony\Component\Validator\Constraints\Type;
 
 class LessonType extends AbstractType
 {
@@ -32,28 +33,29 @@ class LessonType extends AbstractType
             ->add('name', TextType::class, [
                 'constraints' => [
                     new NotBlank([
-                        'message' => 'Name can not be blank'
+                        'message' => 'Name can not be blank',
                     ]),
                     new Length([
                         'max' => 255,
-                        'maxMessage' => 'Name max length is {{ limit }} symbols'
-                    ])
-                ]
+                        'maxMessage' => 'Name max length is {{ limit }} symbols',
+                    ]),
+                ],
             ])
             ->add('content', TextareaType::class, [
                 'constraints' => [
                     new NotBlank([
-                        'message' => 'Content field can not be empty'
-                    ])
-                ]
+                        'message' => 'Content field can not be empty',
+                    ]),
+                ],
             ])
             ->add('indexNumber', NumberType::class, [
                 'constraints' => [
-                    new Regex([
-                        'pattern' => '/^\d+([\.,]?\d+)?$/',
-                        'message' => 'Index value must be numeric'
-                    ])
-                ]
+                    new NotBlank(['message' => 'Index can not be blank']),
+                    new Type([
+                        'type' => 'numeric',
+                        'message' => 'Index value must be numeric',
+                    ]),
+                ],
             ])
             ->add('course', HiddenType::class)
         ;

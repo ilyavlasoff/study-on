@@ -32,6 +32,7 @@
                 <div class="mb-3">
                     <label for="double-password-input" class="form-label">Повторите пароль</label>
                     {{ form_widget(register_form.password.second, {'attr': {'type': 'password','class': 'form-control', 'id': 'double-password-input'}}) }}
+                    {{ form_errors(register_form.password) }}
                     {{ form_errors(register_form.password.second) }}
                 </div>
                 {{ form_widget(register_form.submit, {'attr': {'class': 'btn btn-dark btn-lg', 'style': 'float: right;'}}) }}

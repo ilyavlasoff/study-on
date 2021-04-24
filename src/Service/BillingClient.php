@@ -2,23 +2,12 @@
 
 namespace App\Service;
 
-use App\Exception\AuthenticationException;
 use App\Exception\BillingUnavailableException;
 use App\Exception\FailureResponseException;
-use App\Model\AuthenticationDataDto;
-use App\Model\AuthenticationErrorDto;
-use App\Model\BillingUserDto;
-use App\Model\FailureResponseDto;
-use App\Model\UserRegisterCredentialsDto;
-use App\Security\User;
-use JMS\Serializer\SerializationContext;
+use App\Model\Response\ErrorResponseDto;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\HttpExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -28,7 +17,6 @@ class BillingClient
     private $billingUrlBase;
     private $billingApiVersion;
     private $serializer;
-    private $tokenStorage;
 
     public function __construct(
         string $billingUrlBase,
@@ -47,16 +35,16 @@ class BillingClient
      * @param string $urlSuffix
      * @param null $body
      * @param null $authorizationToken
+     *
      * @return string
-     * @throws AuthenticationException
+     *
      * @throws BillingUnavailableException
-     * @throws FailureResponseException
      */
     public function billingRequest(string $method, string $urlSuffix, $body = null, $authorizationToken = null)
     {
         $requestParams = ['headers' => ['Content-Type' => 'application/json']];
         if ($authorizationToken) {
-            $requestParams['headers']['Authorization'] =  'Bearer '. $authorizationToken;
+            $requestParams['headers']['Authorization'] = 'Bearer ' . $authorizationToken;
         }
         if ($body) {
             $requestParams['body'] = $body;
@@ -70,27 +58,17 @@ class BillingClient
 
             $responseStatus = $response->getStatusCode();
             $data = $response->getContent(false);
-        } catch (TransportExceptionInterface $e) {
-            throw new BillingUnavailableException('Service is unavailable');
-        } catch (HttpExceptionInterface $e) {
+        } catch (TransportExceptionInterface | HttpExceptionInterface $e) {
             throw new BillingUnavailableException('Service is unavailable');
         }
 
         if (!in_array($responseStatus, [Response::HTTP_OK, Response::HTTP_CREATED], true)) {
-            if ($responseStatus === Response::HTTP_UNAUTHORIZED) {
-
-                /** @var AuthenticationErrorDto $authenticationError */
-                $authenticationError = $this->serializer->deserialize(
-                    $data,
-                    AuthenticationErrorDto::class,
-                    'json'
-                );
-
-                throw new AuthenticationException($authenticationError);
-            }
-
-            /** @var FailureResponseDto $error */
-            $error = $this->serializer->deserialize($data, FailureResponseDto::class, 'json');
+            /** @var ErrorResponseDto $authenticationError */
+            $error = $this->serializer->deserialize(
+                $data,
+                ErrorResponseDto::class,
+                'json'
+            );
 
             throw new FailureResponseException($error);
         }

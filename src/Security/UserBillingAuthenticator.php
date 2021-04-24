@@ -5,7 +5,7 @@ namespace App\Security;
 use App\Exception\AuthenticationException;
 use App\Exception\BillingUnavailableException;
 use App\Exception\FailureResponseException;
-use App\Model\UserRegisterCredentialsDto;
+use App\Model\Request\UserRegisterCredentialsDto;
 use App\Service\AuthenticationClient;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -79,9 +79,9 @@ class UserBillingAuthenticator extends AbstractFormLoginAuthenticator
         } catch (AuthenticationException $e) {
             throw new CustomUserMessageAuthenticationException($e->getMessage());
         } catch (BillingUnavailableException $e) {
-            throw new CustomUserMessageAuthenticationException(implode("\n", $e->getFailureErrors()));
-        } catch (FailureResponseException $e) {
             throw new CustomUserMessageAuthenticationException('Billing service is unavailable');
+        } catch (\Exception $e) {
+            throw new CustomUserMessageAuthenticationException('Undefined error');
         }
 
         if (!$user) {

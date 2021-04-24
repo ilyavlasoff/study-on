@@ -6,36 +6,47 @@
     <h1>Курс "{{ course.name }}"</h1>
 
     <h5>Наименование</h5>
-    <p>{{ course.name }}</p>
+    <p class="course-name">{{ course.name }}</p>
 
     <h5>Описание</h5>
-    <p>{{ course.description }}</p>
+    <p class="course-description">{{ course.description }}</p>
+
+    <h4 class="course-bought-status">
+        {% if billing.type == 'rent' %}
+            Вы арендовали этот курс. Срок аренды закончится через {{ billing.ownedUntil.diff(date()) | date("%m мес. %d дн.") }}
+        {% elseif billing.type == 'buy' %}
+            Вы приобрели этот курс. Он будет доступен Вам всегда
+        {% elseif billing.type == 'free' %}
+            Данный курс является бесплатным
+        {% endif %}
+    </h4>
 
     <h3>Список уроков</h3>
     <table class="table table-hover">
         <thead>
-            <tr>
-                <td>#</td>
-                <td>Наименование</td>
-            </tr>
+        <tr>
+            <td>#</td>
+            <td>Наименование</td>
+        </tr>
         </thead>
         <tbody>
-            {% for lesson in lessons %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>
-                        <a class="text-dark" href="{{ path('lesson_show', {'id': lesson.id}) }}">{{ lesson.name }}</a>
-                    </td>
-                </tr>
-            {% endfor %}
+        {% for lesson in lessons %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    <a class="text-dark" href="{{ path('lesson_show', {'id': lesson.id}) }}">{{ lesson.name }}</a>
+                </td>
+            </tr>
+        {% endfor %}
         </tbody>
     </table>
 
-    <h3>Действия</h3>
+    <h5>Действия</h5>
 
-    <a class="btn btn-secondary mt-2" href="{{ path('course_index') }}">Назад к списку курсов</a><br>
+    <a class="btn btn-secondary mt-2 back-course-list" href="{{ path('course_index') }}">Назад к списку курсов</a><br>
+
     {% if is_granted('ROLE_SUPER_ADMIN') %}
-        <a class="btn btn-dark mt-2" href="{{ path('course_edit', {'id': course.id}) }}">Редактировать курс</a><br>
+        <a class="btn btn-dark mt-2" id="course-edit" href="{{ path('course_edit', {'id': course.id}) }}">Редактировать курс</a><br>
         <a class="btn btn-dark mt-2 mb-2" id="add-lesson" href="{{ path('lesson_new', {'course': course.id}) }}">Добавить урок</a><br>
         {{ include('course/_delete_form.html.twig') }}
     {% endif %}

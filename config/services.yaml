@@ -32,5 +32,24 @@ services:
 
     App\Service\BillingClient:
         public: true
-        autowire: true
-        arguments: ["%env(BILLING_URL_BASE)%", "%env(BILLING_API_VERSION)%", "@http_client", "@jms_serializer"]
+        arguments: ['%env(BILLING_URL_BASE)%', '%env(BILLING_API_VERSION)%', '@http_client', '@jms_serializer']
+
+    App\Service\AuthenticationClient:
+        public: true
+        arguments: ['@App\Service\BillingClient', '@jms_serializer']
+
+    App\Service\CoursesQueryClient:
+        public: true
+        arguments: ['@App\Service\BillingClient', '@jms_serializer']
+
+    App\Service\PaymentQueryClient:
+        public: true
+        arguments: [ '@App\Service\BillingClient', '@jms_serializer' ]
+
+    App\Service\PersonalQueryClient:
+        public: true
+        arguments: [ '@App\Service\BillingClient', '@jms_serializer', '@doctrine.orm.entity_manager' ]
+
+    App\EventListener\ExceptionListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.exception }

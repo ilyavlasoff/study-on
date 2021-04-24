@@ -2,40 +2,53 @@
 
 namespace App\Security;
 
-use App\Model\AuthenticationDataDto;
+use App\Model\Response\AuthenticationDataDto;
 use App\Service\JwtDecoder;
-use JMS\Serializer\Annotation as Serializer;
+use JMS\Serializer\Annotation as JMS;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * Class User
- * @package App\Security
- * @Serializer\ExclusionPolicy("all")
+ * @JMS\ExclusionPolicy("all")
  */
 class User implements UserInterface
 {
+    /**
+     * @var string
+     */
     private $email;
 
+    /**
+     * @var string[]
+     */
     private $roles = [];
 
+    /**
+     * @var string
+     */
     private $apiToken;
 
     /**
-     * @Serializer\Expose()
-     * @Serializer\Type("string")
-     * @Serializer\SerializedName("refresh_token")
+     * @var string
+     * @JMS\Expose()
      */
     private $refreshToken;
 
-    public static function createFromDto(AuthenticationDataDto $authenticationDataDto)
+    public static function createFromDto(AuthenticationDataDto $authenticationDataDto): self
     {
-        $user = new self;
+        $user = new self();
         $user->setRoles($authenticationDataDto->getRoles());
         $user->setApiToken($authenticationDataDto->getToken());
         $user->setEmail(JwtDecoder::extractUsername($authenticationDataDto->getToken()));
         $user->setRefreshToken($authenticationDataDto->getRefreshToken());
 
         return $user;
+    }
+    
+    public function updateTokensWithDto(AuthenticationDataDto $authenticationDataDto)
+    {
+        $this->refreshToken = $authenticationDataDto->getRefreshToken();
+        $this->apiToken = $authenticationDataDto->getToken();
     }
 
     public function getEmail(): ?string
@@ -120,8 +133,7 @@ class User implements UserInterface
      */
     public function eraseCredentials()
     {
-        // If you store any temporary, sensitive data on the user, clear it here
-        // $this->plainPassword = null;
+        $this->email = null;
     }
 
     /**
@@ -139,6 +151,4 @@ class User implements UserInterface
     {
         $this->refreshToken = $refreshToken;
     }
-
-
 }

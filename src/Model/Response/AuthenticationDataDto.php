@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Model;
+namespace App\Model\Response;
 
 use JMS\Serializer\Annotation as Serializer;
 
@@ -69,5 +69,4 @@ class AuthenticationDataDto
     {
         $this->refreshToken = $refreshToken;
     }
-
 }

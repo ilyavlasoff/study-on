@@ -5,9 +5,9 @@ namespace App\Entity;
 use App\Repository\CourseRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\Mapping\UniqueConstraint;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass=CourseRepository::class)
@@ -24,21 +24,28 @@ class Course
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotNull(message="Code value can not be null")
+     * @Assert\NotBlank(message="Code value can not be empty")
+     * @Assert\Length(max=255, maxMessage="Maximal code length is 255 symbols")
      */
     private $code;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotNull(message="Name value can not be null")
+     * @Assert\NotBlank(message="Name value can not be empty")
+     * @Assert\Length(max=255, maxMessage="Maximal name length is 255 symbols")
      */
     private $name;
 
     /**
      * @ORM\Column(type="string", length=1000, nullable=true)
+     * @Assert\Length(max=1000, maxMessage="Maximal description length is 1000 symbols")
      */
     private $description;
 
     /**
-     * @ORM\OneToMany(targetEntity="Lesson", mappedBy="course")
+     * @ORM\OneToMany(targetEntity="Lesson", mappedBy="course", cascade={"remove"})
      */
     private $lessons;
 

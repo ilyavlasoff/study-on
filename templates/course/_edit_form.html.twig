@@ -10,6 +10,31 @@
         {{ form_errors(form.name) }}
     </div>
     <div class="form-group">
+        <label for="type-input" class="form-label">Тип курса</label>
+        {{ form_widget(form.type, {'attr': {'id': 'type-input', 'class': 'form-control course-type-select'}}) }}
+        {{ form_errors(form.type) }}
+    </div>
+    <div class="form-group course-price-input">
+        <label for="price-input" class="form-label">Стоимость курса</label>
+        {{ form_widget(form.price, {'attr': {'id': 'price-input', 'class': 'form-control'}}) }}
+        {{ form_errors(form.price) }}
+    </div>
+    <div class="form-group course-rent-time-picker">
+        <label for="rent-input" class="form-label">Время аренды</label>
+        <div class="row">
+            <div class="col">
+                {{ form_row(form.rentTime.months, {'label': 'месяцев','attr': {'id': 'rent-input', 'class': 'form-control'}}) }}
+            </div>
+            <div class="col">
+                {{ form_row(form.rentTime.days, {'label': 'дней', 'attr': {'id': 'rent-input', 'class': 'form-control'}}) }}
+            </div>
+            <div class="col">
+                {{ form_row(form.rentTime.hours, {'label': 'часов', 'attr': {'id': 'rent-input', 'class': 'form-control'}}) }}
+            </div>
+        </div>
+        {{ form_errors(form.rentTime) }}
+    </div>
+    <div class="form-group">
         <label for="description-input" class="form-label">Описание курса</label>
         {{ form_widget(form.description, {'attr': {'id': 'description-input', 'class': 'form-control'}}) }}
         {{ form_errors(form.description) }}

@@ -3,14 +3,14 @@
 namespace App\Controller;
 
 use App\Exception\BillingUnavailableException;
-use App\Exception\FailureResponseException;
+use App\Exception\ValidationException;
 use App\Form\RegisterType;
-use App\Model\UserRegisterCredentialsDto;
+use App\Model\Request\UserRegisterCredentialsDto;
 use App\Security\User;
 use App\Security\UserBillingAuthenticator;
 use App\Service\AuthenticationClient;
-use App\Service\BillingClient;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -22,7 +22,9 @@ class SecurityController extends AbstractController
 {
     /**
      * @Route("/login", name="app_login")
+     *
      * @param AuthenticationUtils $authenticationUtils
+     *
      * @return Response
      */
     public function login(AuthenticationUtils $authenticationUtils): Response
@@ -46,10 +48,12 @@ class SecurityController extends AbstractController
 
     /**
      * @Route("/register", name="app_register")
+     *
      * @param Request $request
      * @param GuardAuthenticatorHandler $guardHandler
      * @param UserBillingAuthenticator $userAuthenticator
      * @param AuthenticationClient $authenticationClient
+     *
      * @return Response
      */
     public function register(
@@ -67,28 +71,36 @@ class SecurityController extends AbstractController
         $registerForm->handleRequest($request);
 
         if ($registerForm->isSubmitted() && $registerForm->isValid()) {
-
+            
             try {
                 $user = $authenticationClient->register($registrationData);
+            } catch (ValidationException $e) {
+                $genericErrors = [];
+                foreach ($e->getDetails() as $errorPath => $errorMessage) {
+                    if ($registerForm->has($errorPath)) {
+                        $registerForm->get($errorPath)->addError(new FormError($errorMessage));
+                    } else {
+                        $genericErrors[] = $errorMessage;
+                    }
+                }
 
-            } catch (FailureResponseException $e) {
                 return $this->render('security/register.html.twig', [
                     'register_form' => $registerForm->createView(),
-                    'errors' => $e->getFailureErrors(),
+                    'errors' => $genericErrors,
                 ]);
-
-            } catch (BillingUnavailableException $e) {
+                
+           } catch (BillingUnavailableException $e) {
                 return $this->render('security/register.html.twig', [
                     'register_form' => $registerForm->createView(),
                     'errors' => $e->getMessage(),
                 ]);
 
-            } catch (\Exception $e) {
+           } catch (\Exception $e) {
                 return $this->render('security/register.html.twig', [
                     'register_form' => $registerForm->createView(),
-                    'errors' => ['Undefined error']
+                    'errors' => ['Undefined error'],
                 ]);
-            }
+           }
 
             return $guardHandler->authenticateUserAndHandleSuccess(
                 $user,

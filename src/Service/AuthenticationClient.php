@@ -5,8 +5,9 @@ namespace App\Service;
 use App\Exception\AuthenticationException;
 use App\Exception\BillingUnavailableException;
 use App\Exception\FailureResponseException;
-use App\Model\AuthenticationDataDto;
-use App\Model\UserRegisterCredentialsDto;
+use App\Exception\ValidationException;
+use App\Model\Request\UserRegisterCredentialsDto;
+use App\Model\Response\AuthenticationDataDto;
 use App\Security\User;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\SerializerInterface;
@@ -24,8 +25,9 @@ class AuthenticationClient
 
     /**
      * @param UserRegisterCredentialsDto $credentials
+     *
      * @return User
-     * @throws AuthenticationException
+     *
      * @throws BillingUnavailableException
      * @throws FailureResponseException
      */
@@ -37,12 +39,21 @@ class AuthenticationClient
             SerializationContext::create()->setGroups(['reg'])
         );
 
-        $registeredClientResponse = $this->billingClient->billingRequest(
-            'POST',
-            '/register',
-            $userCredentials,
-            null
-        );
+        try {
+            $registeredClientResponse = $this->billingClient->billingRequest(
+                'POST',
+                '/register',
+                $userCredentials
+            );
+        } catch (FailureResponseException $e) {
+            $error = $e->getError();
+
+            if ('ERR_VALIDATION' === $error->getError()) {
+                throw new ValidationException($error->getDetails());
+            }
+
+            throw $e;
+        }
 
         /** @var AuthenticationDataDto $authenticationData */
         $authenticationData = $this->serializer->deserialize(
@@ -50,12 +61,15 @@ class AuthenticationClient
             AuthenticationDataDto::class,
             'json'
         );
+
         return User::createFromDto($authenticationData);
     }
 
     /**
      * @param UserRegisterCredentialsDto $credentials
+     *
      * @return User
+     *
      * @throws AuthenticationException
      * @throws BillingUnavailableException
      * @throws FailureResponseException
@@ -68,12 +82,21 @@ class AuthenticationClient
             SerializationContext::create()->setGroups(['auth'])
         );
 
-        $loggedInClientResponse = $this->billingClient->billingRequest(
-            'POST',
-            '/auth',
-            $userCredentials,
-            null
-        );
+        try {
+            $loggedInClientResponse = $this->billingClient->billingRequest(
+                'POST',
+                '/auth',
+                $userCredentials
+            );
+        } catch (FailureResponseException $e) {
+            $error = $e->getError();
+
+            if (401 === $error->getCode()) {
+                throw new AuthenticationException($error->getMessage());
+            }
+
+            throw $e;
+        }
 
         /** @var AuthenticationDataDto $authenticationData */
         $authenticationData = $this->serializer->deserialize(
@@ -87,28 +110,41 @@ class AuthenticationClient
 
     /**
      * @param User $user
+     *
      * @return User
+     *
      * @throws AuthenticationException
      * @throws BillingUnavailableException
      * @throws FailureResponseException
      */
-    public function updateJwt(User $user): User
+    public function updateJwt(User $user)
     {
-        $userOldData =$this->serializer->serialize($user, 'json');
+        $userOldData = $this->serializer->serialize($user, 'json');
 
-        $updatedUserResponse = $this->billingClient->billingRequest(
-            'POST',
-            '/token/refresh',
-            $userOldData,
-            $user->getApiToken()
-        );
+        try {
+            $updatedUserResponse = $this->billingClient->billingRequest(
+                'POST',
+                '/token/refresh',
+                $userOldData,
+                $user->getApiToken()
+            );
+        } catch (FailureResponseException $e) {
+            $error = $e->getError();
+
+            if (401 === $error->getCode()) {
+                throw new AuthenticationException($e->getMessage());
+            }
+
+            throw $e;
+        }
 
         /** @var AuthenticationDataDto $authenticationData */
-        $authenticationData = $this->serializer->deserialize(
+        $refreshedData = $this->serializer->deserialize(
             $updatedUserResponse,
             AuthenticationDataDto::class,
             'json'
         );
-        return User::createFromDto($authenticationData);
+
+        $user->updateTokensWithDto($refreshedData);
     }
 }

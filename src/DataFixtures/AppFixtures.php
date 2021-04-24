@@ -4,7 +4,7 @@ namespace App\DataFixtures;
 
 use App\Entity\Course;
 use App\Entity\Lesson;
-use App\Model\CourseListItemDto;
+use App\Model\Response\CourseDto;
 use App\Service\CoursesQueryClient;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
@@ -20,8 +20,9 @@ class AppFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
-        /** @var CourseListItemDto[] $courses */
-        $courses = $this->coursesQueryClient->getAvailableCoursesList();
+
+        /** @var CourseDto[] $courses */
+        $courses = $this->coursesQueryClient->getCoursesList();
 
         $lessonCountMin = 3;
         $lessonCountMax = 5;
@@ -34,7 +35,7 @@ class AppFixtures extends Fixture
             $manager->persist($course);
 
             $lessonCount = random_int($lessonCountMin, $lessonCountMax);
-            for ($i=0; $i!==$lessonCount; ++$i) {
+            for ($i = 0; $i !== $lessonCount; ++$i) {
                 $lesson = new Lesson();
                 $lesson->setName('Урок №' . $i . ' по дисциплине ' . $loadedCourse->getTitle());
                 $lesson->setContent('Это контент урока №' . $i . ' по курсу ' . $loadedCourse->getTitle());

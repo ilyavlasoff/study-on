@@ -2,11 +2,7 @@
 
 namespace App\Security;
 
-use App\Exception\AuthenticationException;
-use App\Exception\BillingUnavailableException;
-use App\Exception\FailureResponseException;
 use App\Service\AuthenticationClient;
-use App\Service\BillingClient;
 use App\Service\JwtDecoder;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
@@ -39,6 +35,7 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
         $user = new User();
 
         $user->setEmail($username);
+
         return $user;
     }
 
@@ -54,7 +51,9 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
      * method is not called.
      *
      * @param UserInterface $user
+     *
      * @return UserInterface
+     *
      * @throws \Exception
      */
     public function refreshUser(UserInterface $user): UserInterface
@@ -64,15 +63,16 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
         }
 
         $expires = JwtDecoder::extractExpires($user->getApiToken());
-        if ((new \DateTime())->add(new \DateInterval('PT5M')) < $expires) {
-            return $user;
+
+        if ((new \DateTime())->modify('+5 minutes') > $expires) {
+            try {
+                $this->authenticationClient->updateJwt($user);
+            } catch (\Exception $e) {
+                $user->eraseCredentials();
+            }
         }
 
-        try {
-            return $this->authenticationClient->updateJwt($user);
-        } catch (\Exception $e) {
-            return $user;
-        }
+        return $user;
     }
 
     /**

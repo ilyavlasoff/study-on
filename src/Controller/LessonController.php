@@ -5,13 +5,15 @@ namespace App\Controller;
 use App\Entity\Course;
 use App\Entity\Lesson;
 use App\Form\LessonType;
+use App\Service\CoursesQueryClient;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityNotFoundException;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
  * @Route("/lessons")
@@ -19,7 +21,7 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 class LessonController extends AbstractController
 {
     /**
-     * @Route("/new/", name="lesson_new", methods={"GET","POST"})
+     * @Route("/new", name="lesson_new", methods={"GET","POST"})
      * @IsGranted("ROLE_SUPER_ADMIN")
      */
     public function new(Request $request, EntityManagerInterface $entityManager): Response
@@ -27,7 +29,7 @@ class LessonController extends AbstractController
         $courseNum = $request->query->get('course', 0);
         /** @var Course $course */
         $course = $entityManager->getRepository(Course::class)->find($courseNum);
-        if (! $course) {
+        if (!$course) {
             throw new EntityNotFoundException('Course object was not found');
         }
 
@@ -54,9 +56,20 @@ class LessonController extends AbstractController
 
     /**
      * @Route("/{id}", name="lesson_show", methods={"GET"})
+     * @IsGranted("IS_AUTHENTICATED_FULLY")
      */
-    public function show(Lesson $lesson): Response
+    public function show(Lesson $lesson, CoursesQueryClient $client): Response
     {
+        /** @var \App\Security\User $user */
+        $user = $this->getUser();
+        $courseBelong = $lesson->getCourse();
+
+        $courseOwningData = $client->getCourseByCode($courseBelong, $user);
+        
+        if (!$courseOwningData->getOwned()) {
+            throw new AccessDeniedException('Доступ к этому уроку закрыт');
+        }
+
         return $this->render('lesson/show.html.twig', [
             'lesson' => $lesson,
         ]);
@@ -92,7 +105,7 @@ class LessonController extends AbstractController
     public function delete(Request $request, Lesson $lesson): Response
     {
         $courseId = $lesson->getCourse()->getId();
-        if ($this->isCsrfTokenValid('delete'.$lesson->getId(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $lesson->getId(), $request->request->get('_token'))) {
             $entityManager = $this->getDoctrine()->getManager();
             $entityManager->remove($lesson);
             $entityManager->flush();

@@ -1,0 +1,59 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Оплата курсов{% endblock %}
+
+{% block body %}
+    <h1>Оплата</h1>
+
+    <h3>Оплачиваемые курсы</h3>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Наименование</th>
+                <th>Тип владения</th>
+                <th>Стоимость</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for course in paidCourses %}
+            <tr>
+                <td>{{ course.name }}</td>
+                <td>{{ course.type }}</td>
+                <td>{{ course.price | round(2, 'ceil') }} руб.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <h3 class="purchase-sum">Итого: {{ totalSum | round(2, 'ceil') }} руб.</h3>
+
+    {{ form_start(proceedPayment) }}
+        {{ form_widget(proceedPayment.save, {'label':'Оплатить', 'attr': {'class': 'btn btn-lg btn-dark confirm-purchase', 'href': '#', 'data-confirm': 'Продолжить оплату курса?'}}) }}
+    {{ form_end(proceedPayment) }}
+
+    {% for message in app.flashes('error') %}
+        <div class="flash-notice">
+            {{ message }}
+        </div>
+    {% endfor %}
+
+    <div class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Подтверждение</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary modal-ok">OK</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

@@ -17,10 +17,10 @@ security:
                     - App\Security\UserBillingAuthenticator
             logout:
                 path: app_logout
-            remember_me:
-                secret:   '%kernel.secret%'
-                lifetime: 604800
-                path:     /
+            #remember_me:
+                #secret:   '%kernel.secret%'
+                #lifetime: 604800
+                #path:     /
                 # where to redirect after logout
                 # target: app_any_route
 
@@ -36,4 +36,4 @@ security:
         - { path: ^/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: ^/register, roles: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: ^/courses, roles: IS_AUTHENTICATED_ANONYMOUSLY }
-        - { path: ^/, roles: [IS_AUTHENTICATED_FULLY, IS_AUTHENTICATED_REMEMBERED] }
+        - { path: ^/, roles: IS_AUTHENTICATED_FULLY }

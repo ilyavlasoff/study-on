@@ -1,50 +1,57 @@
 <?php
 
-namespace App\Model;
+namespace App\Model\Response;
 
 use JMS\Serializer\Annotation as JMS;
 
-class CourseListItemDto
+class CourseDto
 {
     /**
      * @var string
      * @JMS\Type("string")
+     * @JMS\Groups({"anon", "owned"})
      */
     private $code;
 
     /**
      * @var string
      * @JMS\Type("string")
+     * @JMS\Groups({"anon", "owned"})
      */
     private $type;
 
     /**
      * @var string
      * @JMS\Type("string")
+     * @JMS\Groups({"anon", "owned"})
      */
     private $title;
 
     /**
-     * @var float
+     * @var float | null
      * @JMS\Type("float")
+     * @JMS\Groups({"anon", "owned"})
      */
     private $price;
 
     /**
-     * @var bool
+     * @var bool | null
      * @JMS\Type("bool")
+     * @JMS\Groups({"owned"})
      */
     private $owned;
 
     /**
-     * @var \DateTime
-     * @JMS\Type("datetime")
+     * @var \DateTime | null
+     * @JMS\Type("DateTime<'Y-m-d\TH:i:sP'>")
+     * @JMS\Groups({"owned"})
      */
     private $ownedUntil;
 
     /**
-     * @var \DateInterval
-     * @JMS\Type("dateinterval")
+     * @var \DateInterval | null
+     * @JMS\Type("DateInterval")
+     * @JMS\Groups({"anon", "owned"})
      */
     private $rentTime;
 
@@ -97,68 +104,66 @@ class CourseListItemDto
     }
 
     /**
-     * @return float
+     * @return float|null
      */
-    public function getPrice(): float
+    public function getPrice(): ?float
     {
         return $this->price;
     }
 
     /**
-     * @param float $price
+     * @param float|null $price
      */
-    public function setPrice(float $price): void
+    public function setPrice(?float $price): void
     {
         $this->price = $price;
     }
 
     /**
-     * @return \DateInterval
+     * @return bool|null
      */
-    public function getRentTime(): \DateInterval
-    {
-        return $this->rentTime;
-    }
-
-    /**
-     * @param \DateInterval $rentTime
-     */
-    public function setRentTime(\DateInterval $rentTime): void
-    {
-        $this->rentTime = $rentTime;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isOwned(): bool
+    public function getOwned(): ?bool
     {
         return $this->owned;
     }
 
     /**
-     * @param bool $owned
+     * @param bool|null $owned
      */
-    public function setOwned(bool $owned): void
+    public function setOwned(?bool $owned): void
     {
         $this->owned = $owned;
     }
 
     /**
-     * @return \DateTime
+     * @return \DateTime|null
      */
-    public function getOwnedUntil(): \DateTime
+    public function getOwnedUntil(): ?\DateTime
     {
         return $this->ownedUntil;
     }
 
     /**
-     * @param \DateTime $ownedUntil
+     * @param \DateTime|null $ownedUntil
      */
-    public function setOwnedUntil(\DateTime $ownedUntil): void
+    public function setOwnedUntil(?\DateTime $ownedUntil): void
     {
         $this->ownedUntil = $ownedUntil;
     }
 
+    /**
+     * @return \DateInterval|null
+     */
+    public function getRentTime(): ?\DateInterval
+    {
+        return $this->rentTime;
+    }
 
+    /**
+     * @param \DateInterval|null $rentTime
+     */
+    public function setRentTime(?\DateInterval $rentTime): void
+    {
+        $this->rentTime = $rentTime;
+    }
 }

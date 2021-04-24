@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Model;
+namespace App\Model\Response;
 
 use App\Entity\Course;
 use JMS\Serializer\Annotation as JMS;
@@ -111,7 +111,4 @@ class TransactionHistoryDto
     {
         $this->localCourse = $localCourse;
     }
-
-
-
 }

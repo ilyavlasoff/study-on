@@ -2,21 +2,22 @@
 
 namespace App\Exception;
 
-use App\Model\FailureResponseDto;
+use App\Model\Response\ErrorResponseDto;
 use Throwable;
 
 class FailureResponseException extends \Exception
 {
-    private $failureResponse;
+    private $error;
 
-    public function __construct(FailureResponseDto $failureResponse, $code = 0, Throwable $previous = null)
+    public function __construct(ErrorResponseDto $error, $code = 0, Throwable $previous = null)
     {
-        $this->failureResponse = $failureResponse;
-        parent::__construct('', $code, $previous);
+        $this->error = $error;
+        parent::__construct('Wrong response was received', $code, $previous);
     }
 
-    public function getFailureErrors(): array
+    public function getError(): ErrorResponseDto
     {
-        return $this->failureResponse->getError();
+        return $this->error;
     }
+
 }

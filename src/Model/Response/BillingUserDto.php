@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Model;
+namespace App\Model\Response;
 
 use JMS\Serializer\Annotation as Serializer;
 
@@ -68,6 +68,4 @@ class BillingUserDto
     {
         $this->balance = $balance;
     }
-
-
 }
