@@ -44,5 +44,5 @@ services:
       - ${HOME}/.yarn:/yarn
 networks:
   default:
-    external:
-      name: study-study-on-billing_default
+    name: study-on-billing_default
+
