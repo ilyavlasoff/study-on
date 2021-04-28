@@ -45,4 +45,4 @@ services:
 networks:
   default:
     external:
-      name: study-onbilling_default
+      name: study-study-on-billing_default
