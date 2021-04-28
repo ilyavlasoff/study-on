@@ -43,6 +43,5 @@ services:
       - ${PWD}:/app
       - ${HOME}/.yarn:/yarn
 networks:
-  default:
-    name: study-on-billing_default
+  default: study-on-billing_default
 
