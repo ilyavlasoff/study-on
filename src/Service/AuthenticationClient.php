@@ -92,7 +92,7 @@ class AuthenticationClient
             $error = $e->getError();
 
             if (401 === $error->getCode()) {
-                throw new AuthenticationException($error->getMessage());
+                throw new AuthenticationException();
             }
 
             throw $e;
@@ -132,7 +132,7 @@ class AuthenticationClient
             $error = $e->getError();
 
             if (401 === $error->getCode()) {
-                throw new AuthenticationException($e->getMessage());
+                throw new AuthenticationException();
             }
 
             throw $e;

@@ -2,9 +2,10 @@
 
 namespace App\Exception;
 
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
-class ValidationException extends \Exception
+class ValidationException extends HttpException
 {
     /**
      * @var string[]
@@ -14,7 +15,7 @@ class ValidationException extends \Exception
     public function __construct($details, $message = 'Validation exception occurred', $code = 0, Throwable $previous = null)
     {
         $this->details = $details;
-        parent::__construct($message, $code, $previous);
+        parent::__construct(400, $message, $previous, [], $code);
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Model\Request\UserRegisterCredentialsDto;
 use App\Service\AuthenticationClient;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
@@ -76,10 +77,10 @@ class UserBillingAuthenticator extends AbstractFormLoginAuthenticator
         try {
             $user = $this->authenticationClient->login($userData);
         } catch (AuthenticationException $e) {
-            throw new CustomUserMessageAuthenticationException($e->getMessage());
+            throw new CustomUserMessageAuthenticationException('Ошибка аутентификации');
         } catch (BillingUnavailableException $e) {
             throw new CustomUserMessageAuthenticationException('Billing service is unavailable');
-        } catch (\Exception $e) {
+        } catch (HttpException $e) {
             throw new CustomUserMessageAuthenticationException('Undefined error');
         }
 

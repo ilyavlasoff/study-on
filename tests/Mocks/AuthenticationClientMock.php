@@ -51,7 +51,7 @@ class AuthenticationClientMock extends AuthenticationClient
     {
         if (!array_key_exists($credentials->getUsername(), $this->dataMock->registeredUsers) ||
             'password' !== $credentials->getPassword()) {
-            throw new AuthenticationException('Invalid credentials.');
+            throw new AuthenticationException();
         }
 
         return $this->dataMock->registeredUsers[$credentials->getUsername()];
